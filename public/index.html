@@ -1117,7 +1117,7 @@
         .selector-line-info strong,
         .selector-line-info span {
             overflow: hidden;
-            text-overflow: ellipsis;
+            text-overflow: clip;
             white-space: nowrap;
         }
 
@@ -1317,30 +1317,1550 @@
             }
         }
     </style>
+
+    <style id="premium-glass-theme">
+        :root {
+            --bg: #07101d;
+            --sidebar: rgba(10, 19, 33, 0.76);
+            --sidebar-active: rgba(33, 222, 128, 0.12);
+            --surface: rgba(18, 32, 51, 0.72);
+            --surface-2: rgba(23, 40, 63, 0.78);
+            --surface-3: rgba(35, 54, 79, 0.82);
+            --border: rgba(148, 163, 184, 0.18);
+            --border-soft: rgba(148, 163, 184, 0.12);
+            --text: #f7fbff;
+            --muted: #8fa4bc;
+            --green: #31e981;
+            --green-dark: #1bc66a;
+            --blue: #5c8dff;
+            --danger: #ff5d6c;
+            --warning: #ffbf4b;
+            --shadow: 0 26px 70px rgba(0, 0, 0, 0.34);
+            --glow: 0 0 0 1px rgba(49, 233, 129, 0.12), 0 0 34px rgba(49, 233, 129, 0.09);
+        }
+
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(143, 164, 188, 0.38) transparent;
+        }
+
+        *::-webkit-scrollbar { width: 8px; height: 8px; }
+        *::-webkit-scrollbar-track { background: transparent; }
+        *::-webkit-scrollbar-thumb {
+            background: rgba(143, 164, 188, 0.30);
+            border-radius: 999px;
+        }
+
+        body {
+            position: relative;
+            background:
+                radial-gradient(circle at 18% 11%, rgba(49, 233, 129, 0.08), transparent 24%),
+                radial-gradient(circle at 88% 12%, rgba(92, 141, 255, 0.12), transparent 30%),
+                linear-gradient(145deg, #07101d 0%, #0a1422 48%, #08111d 100%);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            opacity: .22;
+            background-image:
+                linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+            background-size: 32px 32px;
+            mask-image: linear-gradient(to bottom, black, transparent 86%);
+        }
+
+        button, input, textarea { -webkit-tap-highlight-color: transparent; }
+        button:focus-visible, input:focus-visible, textarea:focus-visible {
+            outline: 2px solid rgba(49, 233, 129, .78);
+            outline-offset: 2px;
+        }
+
+        .svg-sprite {
+            position: absolute;
+            width: 0;
+            height: 0;
+            overflow: hidden;
+        }
+
+        .icon {
+            width: 18px;
+            height: 18px;
+            flex: 0 0 auto;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.85;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .app-shell { grid-template-columns: 238px minmax(0, 1fr); }
+
+        .sidebar {
+            padding: 24px 18px 18px;
+            background: var(--sidebar);
+            border-right: 1px solid rgba(255,255,255,.075);
+            box-shadow: 6px 0 18px rgba(0,0,0,.10);
+            backdrop-filter: blur(24px) saturate(140%);
+            -webkit-backdrop-filter: blur(24px) saturate(140%);
+        }
+
+        .brand {
+            gap: 12px;
+            margin: 2px 8px 30px;
+            color: #f6fbff;
+            font-size: 18px;
+            letter-spacing: -.35px;
+        }
+
+        .brand::after {
+            content: "PRO";
+            margin-left: auto;
+            padding: 4px 7px;
+            border: 1px solid rgba(49,233,129,.25);
+            border-radius: 999px;
+            background: rgba(49,233,129,.08);
+            color: #78f7ae;
+            font-size: 9px;
+            letter-spacing: .9px;
+        }
+
+        .brand-icon {
+            width: 38px;
+            height: 38px;
+            border: 1px solid rgba(49,233,129,.24);
+            border-radius: 13px;
+            background: linear-gradient(145deg, rgba(49,233,129,.20), rgba(49,233,129,.06));
+            color: var(--green);
+            box-shadow: 0 10px 26px rgba(49,233,129,.14), inset 0 1px rgba(255,255,255,.12);
+        }
+
+        .brand-icon .icon { width: 19px; height: 19px; }
+        .nav { gap: 7px; }
+
+        .nav-button {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            min-height: 46px;
+            padding: 0 13px;
+            border: 1px solid transparent;
+            border-radius: 13px;
+            color: #aebdd0;
+            font-size: 13px;
+            font-weight: 740;
+        }
+
+        .nav-button:hover {
+            background: rgba(255,255,255,.045);
+            color: #f7fbff;
+            transform: translateX(2px);
+        }
+
+        .nav-button.active {
+            border-color: rgba(49,233,129,.20);
+            background: linear-gradient(90deg, rgba(49,233,129,.15), rgba(49,233,129,.045));
+            color: #ecfff4;
+            box-shadow: inset 3px 0 var(--green), 0 10px 25px rgba(0,0,0,.12);
+        }
+
+        .nav-button.active .icon { color: var(--green); filter: drop-shadow(0 0 8px rgba(49,233,129,.42)); }
+
+        .nav-count {
+            display: inline-grid;
+            place-items: center;
+            min-width: 22px;
+            height: 22px;
+            margin-left: 4px;
+            padding: 0 6px;
+            border-radius: 999px;
+            background: rgba(255,255,255,.07);
+            color: #dce8f4;
+            font-size: 10px;
+        }
+
+        .update-panel {
+            gap: 10px;
+            padding: 14px;
+            border-color: rgba(148,163,184,.14);
+            border-radius: 15px;
+            background: linear-gradient(145deg, rgba(17,31,49,.82), rgba(11,22,37,.68));
+            box-shadow: inset 0 1px rgba(255,255,255,.035), 0 18px 40px rgba(0,0,0,.16);
+            backdrop-filter: blur(16px);
+        }
+
+        .update-panel-title { font-size: 11px; letter-spacing: .4px; text-transform: uppercase; }
+        .update-version { color: #78f7ae; }
+        .update-progress { background: rgba(255,255,255,.07); }
+        .update-progress-bar, .progress-bar {
+            background: linear-gradient(90deg, #24dc75, #75f8ad);
+            box-shadow: 0 0 18px rgba(49,233,129,.36);
+        }
+
+        .update-button {
+            border-color: rgba(148,163,184,.14);
+            border-radius: 10px;
+            background: rgba(255,255,255,.045);
+        }
+
+        .update-button:hover { background: rgba(255,255,255,.085); transform: translateY(-1px); }
+        .sidebar-version { margin-left: 4px; font-size: 10px; letter-spacing: .3px; }
+
+        .main {
+            padding: 18px 22px 96px;
+            background: transparent;
+        }
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 18;
+            margin: 0 0 18px;
+            padding: 8px 0 14px;
+            background: linear-gradient(to bottom, rgba(7,16,29,.92), rgba(7,16,29,.62), transparent);
+            backdrop-filter: blur(14px);
+        }
+
+        .topbar h1 {
+            position: relative;
+            font-size: clamp(23px, 2vw, 30px);
+            font-weight: 780;
+            letter-spacing: -.8px;
+        }
+
+        .topbar h1::after {
+            content: "";
+            display: block;
+            width: 38px;
+            height: 3px;
+            margin-top: 9px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--green), transparent);
+            box-shadow: 0 0 14px rgba(49,233,129,.42);
+        }
+
+        .topbar-actions {
+            padding: 4px;
+            border: 1px solid rgba(148,163,184,.12);
+            border-radius: 13px;
+            background: rgba(14,27,44,.66);
+            backdrop-filter: blur(16px);
+        }
+
+        .view-button,
+        .secondary-button,
+        .ghost-button,
+        .danger-button,
+        .primary-button,
+        .warning-button,
+        .small-secondary,
+        .small-danger,
+        .program-actions button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border-radius: 11px;
+            transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease, color .18s ease;
+        }
+
+        .view-button {
+            min-height: 36px;
+            padding: 0 12px;
+            border: 0;
+            background: transparent;
+            color: #90a3b9;
+            font-size: 12px;
+        }
+
+        .view-button.active,
+        .view-button:hover {
+            background: rgba(255,255,255,.08);
+            color: #f7fbff;
+            box-shadow: inset 0 1px rgba(255,255,255,.06);
+        }
+
+        .primary-button {
+            background: linear-gradient(135deg, #31e981, #1ccc6c);
+            color: #052414;
+            box-shadow: 0 12px 28px rgba(49,233,129,.16), inset 0 1px rgba(255,255,255,.34);
+        }
+
+        .primary-button:hover {
+            background: linear-gradient(135deg, #4df294, #25d977);
+            transform: translateY(-1px);
+            box-shadow: 0 16px 34px rgba(49,233,129,.23), inset 0 1px rgba(255,255,255,.38);
+        }
+
+        .secondary-button,
+        .ghost-button,
+        .small-secondary {
+            border-color: rgba(148,163,184,.17);
+            background: rgba(255,255,255,.045);
+            color: #d8e5f2;
+        }
+
+        .secondary-button:hover,
+        .ghost-button:hover,
+        .small-secondary:hover {
+            border-color: rgba(148,163,184,.28);
+            background: rgba(255,255,255,.085);
+            transform: translateY(-1px);
+        }
+
+        .dashboard-grid {
+            gap: 18px;
+            align-content: start;
+        }
+
+        .empty-state {
+            min-height: 180px;
+            border: 1px dashed rgba(143,164,188,.28);
+            border-radius: 18px;
+            background: rgba(13,25,41,.42);
+            color: #6f839b;
+            backdrop-filter: blur(12px);
+        }
+
+        .empty-state strong { color: #a9bbcf; }
+
+        .program-card,
+        .stat-card,
+        .panel,
+        .line-card {
+            border-color: rgba(148,163,184,.13);
+            background: linear-gradient(145deg, rgba(22,39,61,.76), rgba(11,24,40,.68));
+            box-shadow: inset 0 1px rgba(255,255,255,.035), 0 24px 50px rgba(0,0,0,.17);
+            backdrop-filter: blur(20px) saturate(130%);
+            -webkit-backdrop-filter: blur(20px) saturate(130%);
+        }
+
+        .program-card {
+            border-radius: 19px;
+            transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+        }
+
+        .program-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(49,233,129,.19);
+            box-shadow: var(--glow), 0 28px 60px rgba(0,0,0,.28);
+        }
+
+        .program-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);
+            z-index: 2;
+        }
+
+        .program-card-image { filter: saturate(.95) contrast(1.03); }
+        .program-card-body { gap: 11px; padding: 2px 17px 17px; }
+        .program-card-time { font-size: 17px; letter-spacing: -.25px; }
+        .program-card-text { color: #b6c4d5; line-height: 1.55; }
+
+        .chip {
+            min-height: 26px;
+            padding: 0 10px;
+            border: 1px solid rgba(148,163,184,.10);
+            background: rgba(255,255,255,.045);
+            color: #aebed0;
+            font-size: 10px;
+            letter-spacing: .2px;
+        }
+
+        .chip.success {
+            border-color: rgba(49,233,129,.15);
+            background: rgba(49,233,129,.09);
+            color: #78f7ae;
+        }
+
+        .program-actions button { min-height: 39px; }
+        .btn-edit { background: linear-gradient(135deg, #5c8dff, #4777e5); box-shadow: 0 10px 24px rgba(92,141,255,.16); }
+        .btn-delete { background: linear-gradient(135deg, #ff6675, #e94858); box-shadow: 0 10px 24px rgba(255,93,108,.14); }
+        .program-actions button:hover { transform: translateY(-1px); filter: brightness(1.05); }
+
+        .stats-row { gap: 16px; }
+        .stat-card {
+            position: relative;
+            min-height: 118px;
+            padding: 18px;
+            overflow: hidden;
+            border-radius: 18px;
+        }
+
+        .stat-card::after {
+            content: "";
+            position: absolute;
+            width: 90px;
+            height: 90px;
+            right: -32px;
+            bottom: -42px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(49,233,129,.13), transparent 68%);
+        }
+
+        .stat-icon {
+            display: grid;
+            place-items: center;
+            width: 34px;
+            height: 34px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(49,233,129,.18);
+            border-radius: 11px;
+            background: rgba(49,233,129,.09);
+            color: #69f3a3;
+        }
+
+        .stat-icon.danger {
+            border-color: rgba(255,93,108,.20);
+            background: rgba(255,93,108,.09);
+            color: #ff8390;
+        }
+
+        .stat-icon .icon { width: 17px; height: 17px; }
+        .stat-card span { font-size: 11px; text-transform: uppercase; letter-spacing: .75px; }
+        .stat-card strong { margin-top: 5px; font-size: 28px; letter-spacing: -.8px; }
+
+        .panel {
+            border-radius: 20px;
+            padding: 22px;
+        }
+
+        .panel h2, .panel h3 { letter-spacing: -.35px; }
+        .progress-track { height: 9px; background: rgba(255,255,255,.065); }
+        .result-columns { gap: 16px; }
+
+        .result-box {
+            border-color: rgba(148,163,184,.11);
+            border-radius: 14px;
+            background: rgba(6,15,27,.38);
+            box-shadow: inset 0 1px rgba(255,255,255,.025);
+        }
+
+        .line-toolbar { gap: 12px; }
+
+        .input, .textarea {
+            border-color: rgba(148,163,184,.15);
+            border-radius: 12px;
+            background: rgba(5,15,27,.52);
+            color: var(--text);
+            box-shadow: inset 0 1px rgba(255,255,255,.025);
+            transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+        }
+
+        .input::placeholder, .textarea::placeholder { color: #61758d; }
+        .input:hover, .textarea:hover { border-color: rgba(148,163,184,.26); }
+        .input:focus, .textarea:focus {
+            border-color: rgba(49,233,129,.64);
+            background: rgba(7,18,31,.74);
+            box-shadow: 0 0 0 4px rgba(49,233,129,.09), 0 0 24px rgba(49,233,129,.05);
+        }
+
+        .line-card {
+            min-height: 138px;
+            border-radius: 17px;
+            transition: transform .18s ease, border-color .18s ease;
+        }
+
+        .line-card:hover { transform: translateY(-2px); border-color: rgba(49,233,129,.18); }
+        .line-title { font-size: 16px; }
+        .line-status { color: #78f7ae; }
+
+        .line-tag {
+            min-height: 19px;
+            padding: 0 7px;
+            border-radius: 999px;
+            font-size: 8px;
+            letter-spacing: .55px;
+        }
+
+        .tag-picker-button {
+            min-height: 34px;
+            border-color: rgba(148,163,184,.14);
+            border-radius: 10px;
+            background: rgba(255,255,255,.04);
+        }
+
+        .tag-menu {
+            border-color: rgba(148,163,184,.16);
+            border-radius: 13px;
+            background: rgba(8,18,31,.94);
+            box-shadow: 0 24px 60px rgba(0,0,0,.45);
+            backdrop-filter: blur(18px);
+        }
+
+        .qr {
+            border-radius: 12px;
+            box-shadow: 0 10px 32px rgba(0,0,0,.25);
+        }
+
+        .security-alert {
+            border-color: rgba(255,191,75,.32);
+            border-radius: 15px;
+            background: rgba(255,191,75,.075);
+            backdrop-filter: blur(12px);
+        }
+
+        .fab {
+            width: 60px;
+            height: 60px;
+            border: 1px solid rgba(255,255,255,.24);
+            background: linear-gradient(145deg, #44ef8d, #20cf6e);
+            color: #062515;
+            box-shadow: 0 18px 42px rgba(49,233,129,.28), inset 0 1px rgba(255,255,255,.45);
+        }
+
+        .fab .icon { width: 25px; height: 25px; stroke-width: 2; }
+        .fab:hover { transform: translateY(-4px) scale(1.035); box-shadow: 0 24px 52px rgba(49,233,129,.36); }
+
+        .modal {
+            background: rgba(1,7,14,.68);
+            backdrop-filter: blur(18px) saturate(120%);
+            -webkit-backdrop-filter: blur(18px) saturate(120%);
+        }
+
+        .modal-card {
+            border-color: rgba(148,163,184,.17);
+            border-radius: 22px;
+            background: linear-gradient(145deg, rgba(20,36,57,.96), rgba(9,20,34,.96));
+            box-shadow: 0 38px 100px rgba(0,0,0,.48), inset 0 1px rgba(255,255,255,.06);
+        }
+
+        .modal-header {
+            padding: 17px 21px;
+            border-color: rgba(148,163,184,.11);
+            background: rgba(13,26,43,.82);
+            backdrop-filter: blur(20px);
+        }
+
+        .modal-header h2 { letter-spacing: -.45px; }
+
+        .icon-button {
+            width: 38px;
+            height: 38px;
+            border: 1px solid rgba(148,163,184,.12);
+            border-radius: 12px;
+            background: rgba(255,255,255,.055);
+            color: #bac9da;
+            transition: .18s ease;
+        }
+
+        .icon-button:hover { background: rgba(255,255,255,.10); color: white; transform: rotate(4deg); }
+        .icon-button .icon { width: 18px; height: 18px; }
+
+        .create-image-column {
+            background: radial-gradient(circle at 50% 25%, rgba(49,233,129,.06), transparent 34%), rgba(5,15,27,.58);
+            border-color: rgba(148,163,184,.10);
+        }
+
+        .upload-zone {
+            border: 1px dashed rgba(143,164,188,.33);
+            border-radius: 18px;
+            background: linear-gradient(145deg, rgba(7,18,31,.72), rgba(12,27,44,.52));
+            transition: border-color .18s ease, background .18s ease, box-shadow .18s ease, transform .18s ease;
+        }
+
+        .upload-zone:hover {
+            border-color: rgba(49,233,129,.62);
+            background: linear-gradient(145deg, rgba(10,27,42,.80), rgba(14,34,52,.60));
+            box-shadow: 0 0 0 4px rgba(49,233,129,.065), inset 0 1px rgba(255,255,255,.035);
+        }
+
+        .upload-icon {
+            display: grid;
+            place-items: center;
+            width: 68px;
+            height: 68px;
+            border: 1px solid rgba(49,233,129,.20);
+            border-radius: 20px;
+            background: rgba(49,233,129,.08);
+            color: #71f5a9;
+            box-shadow: 0 16px 34px rgba(49,233,129,.10);
+        }
+
+        .upload-icon .icon { width: 28px; height: 28px; }
+        .preview-image { border-radius: 16px; }
+
+        .line-selector-panel {
+            border-color: rgba(148,163,184,.12);
+            border-radius: 16px;
+            background: rgba(4,14,25,.34);
+        }
+
+        .selected-count {
+            border: 1px solid rgba(49,233,129,.14);
+            background: rgba(49,233,129,.08);
+            color: #78f7ae;
+        }
+
+        .selector-line {
+            border-color: rgba(148,163,184,.11);
+            border-radius: 12px;
+            background: rgba(255,255,255,.035);
+        }
+
+        .selector-line:hover { border-color: rgba(49,233,129,.20); background: rgba(49,233,129,.045); }
+
+        .toast-container { top: 22px; right: 24px; }
+        .toast {
+            border-color: rgba(148,163,184,.16);
+            border-radius: 14px;
+            background: rgba(17,32,51,.92);
+            box-shadow: 0 24px 60px rgba(0,0,0,.36);
+            backdrop-filter: blur(18px);
+        }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(-10px) scale(.98); }
+        }
+
+        @media (max-width: 900px) {
+            .app-shell { grid-template-columns: 198px minmax(0, 1fr); }
+            .main { padding: 16px 18px 90px; }
+            .topbar { margin-bottom: 16px; }
+        }
+
+        @media (max-width: 680px) {
+            .sidebar {
+                background: rgba(8,18,31,.92);
+                box-shadow: 0 12px 34px rgba(0,0,0,.22);
+            }
+
+            .brand { margin-bottom: 12px; }
+            .brand::after { display: none; }
+            .nav-button { justify-content: center; min-height: 42px; }
+            .nav-button .icon { display: none; }
+            .topbar {
+                margin: 0 0 14px;
+                padding: 6px 0 12px;
+            }
+            .main { padding: 14px 14px 84px; }
+            .modal-card { border-radius: 18px; }
+            .stats-row { gap: 10px; }
+            .stat-card { min-height: 106px; padding: 15px; }
+        }
+    </style>
+
+
+    <style id="alt-redesign-theme">
+        :root {
+            --bg: #080c16;
+            --sidebar: rgba(14, 18, 31, 0.92);
+            --sidebar-active: rgba(93, 92, 255, 0.16);
+            --surface: rgba(18, 22, 38, 0.90);
+            --surface-2: rgba(22, 27, 46, 0.95);
+            --surface-3: rgba(33, 40, 68, 0.96);
+            --border: rgba(147, 163, 184, 0.14);
+            --border-soft: rgba(147, 163, 184, 0.10);
+            --text: #f4f7fb;
+            --muted: #93a0ba;
+            --green: #62f5c5;
+            --green-dark: #42d8a8;
+            --blue: #7398ff;
+            --danger: #ff6b81;
+            --warning: #ffc857;
+            --shadow: 0 20px 60px rgba(0,0,0,.32);
+            --accent: #7c72ff;
+            --accent-soft: rgba(124, 114, 255, 0.18);
+            --cyan-soft: rgba(98, 245, 197, 0.16);
+        }
+
+        body {
+            background:
+                radial-gradient(circle at 14% 12%, rgba(124, 114, 255, 0.15), transparent 24%),
+                radial-gradient(circle at 88% 16%, rgba(98, 245, 197, 0.11), transparent 26%),
+                linear-gradient(180deg, #0a0f1c 0%, #090d18 100%);
+        }
+
+        body::before {
+            opacity: .12;
+            background-image:
+                linear-gradient(rgba(255,255,255,.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px);
+            background-size: 26px 26px;
+        }
+
+        .app-shell {
+            grid-template-columns: 250px minmax(0, 1fr);
+        }
+
+        .sidebar {
+            padding: 20px 16px 16px;
+            background: linear-gradient(180deg, rgba(17,21,36,.98) 0%, rgba(10,14,25,.97) 100%);
+            border-right: 1px solid rgba(255,255,255,.05);
+            box-shadow: inset -1px 0 0 rgba(255,255,255,.03);
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+        }
+
+        .brand {
+            align-items: center;
+            gap: 12px;
+            margin: 4px 6px 28px;
+            padding: 10px 12px;
+            border: 1px solid rgba(255,255,255,.05);
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(124,114,255,.12), rgba(98,245,197,.08));
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+        }
+
+        .brand::after {
+            content: "Studio";
+            background: rgba(255,255,255,.06);
+            border: 1px solid rgba(255,255,255,.05);
+            color: #d8ddff;
+            letter-spacing: .4px;
+            font-size: 10px;
+            padding: 5px 8px;
+        }
+
+        .brand-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            border: 1px solid rgba(124,114,255,.24);
+            background: linear-gradient(135deg, rgba(124,114,255,.28), rgba(98,245,197,.14));
+            color: #fff;
+            box-shadow: 0 10px 24px rgba(124,114,255,.18);
+        }
+
+        .nav {
+            gap: 8px;
+        }
+
+        .nav-button {
+            min-height: 48px;
+            padding: 0 14px;
+            border: 1px solid transparent;
+            border-radius: 14px;
+            background: transparent;
+            color: #b7c0d8;
+            font-weight: 700;
+        }
+
+        .nav-button:hover {
+            transform: none;
+            background: rgba(255,255,255,.045);
+            border-color: rgba(255,255,255,.04);
+        }
+
+        .nav-button.active {
+            background: linear-gradient(135deg, rgba(124,114,255,.24), rgba(124,114,255,.08));
+            border-color: rgba(124,114,255,.26);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 10px 24px rgba(124,114,255,.16);
+            color: #fff;
+        }
+
+        .update-panel {
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(19,24,43,.96), rgba(13,18,32,.94));
+            border: 1px solid rgba(255,255,255,.05);
+            box-shadow: none;
+            backdrop-filter: none;
+        }
+
+        .update-progress,
+        .progress-track {
+            background: rgba(255,255,255,.06);
+        }
+
+        .update-progress-bar,
+        .progress-bar {
+            background: linear-gradient(90deg, #7c72ff, #62f5c5);
+            box-shadow: 0 0 18px rgba(124,114,255,.28);
+        }
+
+        .main {
+            padding: 22px 22px 98px;
+        }
+
+        .topbar {
+            margin: 0 0 20px;
+            padding: 0;
+            background: transparent;
+            backdrop-filter: none;
+        }
+
+        .topbar h1 {
+            font-size: clamp(27px, 2.2vw, 34px);
+            letter-spacing: -1px;
+            font-weight: 820;
+        }
+
+        .topbar h1::after {
+            width: 74px;
+            height: 4px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--accent), var(--green), transparent);
+            box-shadow: none;
+        }
+
+        .topbar-actions {
+            padding: 5px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,.06);
+            background: rgba(14, 18, 31, 0.78);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+            backdrop-filter: blur(10px);
+        }
+
+        .view-button,
+        .secondary-button,
+        .ghost-button,
+        .danger-button,
+        .primary-button,
+        .warning-button,
+        .small-secondary,
+        .small-danger,
+        .program-actions button {
+            border-radius: 13px;
+        }
+
+        .view-button {
+            min-height: 38px;
+            padding: 0 14px;
+            color: #9ea9c2;
+        }
+
+        .view-button.active,
+        .view-button:hover {
+            background: linear-gradient(135deg, rgba(124,114,255,.20), rgba(98,245,197,.10));
+            color: #fff;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+        }
+
+        .dashboard-grid {
+            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 340px));
+        }
+
+        .empty-state,
+        .program-card,
+        .stat-card,
+        .panel,
+        .line-card,
+        .result-box,
+        .selector-line,
+        .selected-lines-box,
+        .line-selector-panel,
+        .upload-zone,
+        .modal-card,
+        .topbar-actions,
+        .toast {
+            border: 1px solid rgba(255,255,255,.06);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+        }
+
+        .empty-state {
+            min-height: 190px;
+            border-style: solid;
+            border-radius: 24px;
+            background:
+                linear-gradient(180deg, rgba(18,22,38,.96), rgba(14,18,31,.94));
+            color: #7f8ba3;
+        }
+
+        .empty-state strong {
+            color: #d9dfeb;
+            font-size: 22px;
+            line-height: 1.15;
+            margin-bottom: 10px;
+        }
+
+        .program-card,
+        .stat-card,
+        .panel,
+        .line-card {
+            background: linear-gradient(180deg, rgba(18,22,38,.98), rgba(13,17,30,.96));
+            border-radius: 24px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .program-card:hover,
+        .line-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(124,114,255,.22);
+            box-shadow: 0 18px 38px rgba(0,0,0,.22), 0 0 0 1px rgba(124,114,255,.06);
+        }
+
+        .program-card::before {
+            display: none;
+        }
+
+        .program-card-image {
+            aspect-ratio: 16 / 10;
+            border-bottom: 1px solid rgba(255,255,255,.05);
+        }
+
+        .program-card-body {
+            padding: 6px 18px 18px;
+        }
+
+        .program-card-time {
+            font-size: 18px;
+            line-height: 1.2;
+        }
+
+        .program-card-text {
+            color: #b6c0d6;
+        }
+
+        .chip {
+            min-height: 28px;
+            padding: 0 11px;
+            border-radius: 999px;
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.05);
+            color: #c5cee0;
+            font-size: 11px;
+        }
+
+        .chip.success {
+            background: rgba(98,245,197,.10);
+            border-color: rgba(98,245,197,.20);
+            color: #9bffdd;
+        }
+
+        .btn-edit {
+            background: linear-gradient(135deg, #7c72ff, #6578ff);
+            box-shadow: 0 10px 22px rgba(124,114,255,.22);
+        }
+
+        .btn-delete {
+            background: linear-gradient(135deg, #ff7387, #ff5e6d);
+            box-shadow: 0 10px 22px rgba(255,94,109,.16);
+        }
+
+        .stat-card {
+            min-height: 126px;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .stat-card::after {
+            background: radial-gradient(circle, rgba(124,114,255,.15), transparent 70%);
+        }
+
+        .stat-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            background: rgba(124,114,255,.14);
+            border-color: rgba(124,114,255,.18);
+            color: #b6b0ff;
+        }
+
+        .stat-icon.danger {
+            background: rgba(255,94,109,.10);
+            border-color: rgba(255,94,109,.18);
+            color: #ff91a0;
+        }
+
+        .stat-card span {
+            color: #94a1bc;
+            font-size: 11px;
+        }
+
+        .stat-card strong {
+            font-size: 30px;
+            color: #ffffff;
+        }
+
+        .panel {
+            padding: 24px;
+        }
+
+        .result-box,
+        .line-selector-panel,
+        .selected-lines-box {
+            background: rgba(255,255,255,.025);
+            border-radius: 18px;
+        }
+
+        .input,
+        .textarea {
+            min-height: 44px;
+            border-radius: 14px;
+            background: rgba(255,255,255,.03);
+            border: 1px solid rgba(255,255,255,.07);
+            box-shadow: none;
+        }
+
+        .textarea {
+            min-height: 110px;
+        }
+
+        .input:hover,
+        .textarea:hover {
+            border-color: rgba(124,114,255,.20);
+        }
+
+        .input:focus,
+        .textarea:focus {
+            border-color: rgba(124,114,255,.44);
+            background: rgba(255,255,255,.05);
+            box-shadow: 0 0 0 4px rgba(124,114,255,.10);
+        }
+
+        .line-tag.activa {
+            background: #69f5cb;
+            border-color: #8ffadb;
+            color: #07231a;
+            box-shadow: none;
+        }
+
+        .line-tag.indefinida {
+            background: #35285f;
+            border-color: #57438f;
+            color: #dfd5ff;
+        }
+
+        .line-tag.caida {
+            background: #ff5f73;
+            border-color: #ff8796;
+            color: white;
+        }
+
+        .line-tag.reposo {
+            background: #ffd86a;
+            border-color: #ffe08b;
+            color: #423100;
+        }
+
+        .tag-picker-button,
+        .small-secondary,
+        .secondary-button,
+        .ghost-button,
+        .update-button {
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.07);
+            color: #d8e0ef;
+        }
+
+        .tag-picker-button:hover,
+        .small-secondary:hover,
+        .secondary-button:hover,
+        .ghost-button:hover,
+        .update-button:hover {
+            background: rgba(255,255,255,.07);
+            border-color: rgba(124,114,255,.18);
+        }
+
+        .primary-button,
+        .update-button.primary {
+            background: linear-gradient(135deg, #7c72ff, #62f5c5);
+            color: #09111f;
+            box-shadow: 0 14px 30px rgba(124,114,255,.24);
+        }
+
+        .primary-button:hover,
+        .update-button.primary:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.03);
+        }
+
+        .warning-button,
+        .update-button.install {
+            background: linear-gradient(135deg, #ffd36a, #ffb84f);
+            color: #312100;
+        }
+
+        .small-danger,
+        .danger-button {
+            background: rgba(255,95,115,.14);
+            color: #ffb8c0;
+            border: 1px solid rgba(255,95,115,.16);
+        }
+
+        .upload-zone {
+            border-style: solid;
+            border-radius: 22px;
+            background: linear-gradient(180deg, rgba(23,27,45,.98), rgba(14,18,31,.95));
+        }
+
+        .upload-zone:hover {
+            border-color: rgba(124,114,255,.26);
+            background: linear-gradient(180deg, rgba(26,31,52,.98), rgba(16,20,36,.95));
+            box-shadow: 0 0 0 4px rgba(124,114,255,.08);
+        }
+
+        .upload-icon {
+            background: rgba(124,114,255,.14);
+            border-color: rgba(124,114,255,.22);
+            color: #c2bcff;
+            box-shadow: none;
+        }
+
+        .selector-line:hover {
+            border-color: rgba(124,114,255,.20);
+            background: rgba(124,114,255,.06);
+        }
+
+        .fab {
+            width: 62px;
+            height: 62px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,.10);
+            background: linear-gradient(135deg, #7c72ff, #62f5c5);
+            color: #0a1120;
+            box-shadow: 0 18px 34px rgba(124,114,255,.28);
+        }
+
+        .fab:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 22px 42px rgba(124,114,255,.30);
+        }
+
+        .modal {
+            background: rgba(5,8,14,.72);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .modal-card {
+            border-radius: 26px;
+            background: linear-gradient(180deg, rgba(18,22,38,.99), rgba(10,14,26,.98));
+            box-shadow: 0 24px 80px rgba(0,0,0,.42);
+        }
+
+        .modal-header {
+            background: rgba(255,255,255,.02);
+            border-bottom: 1px solid rgba(255,255,255,.06);
+        }
+
+        .icon-button {
+            border-radius: 12px;
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.06);
+            color: #d1daeb;
+        }
+
+        .icon-button:hover {
+            transform: none;
+            background: rgba(255,255,255,.07);
+        }
+
+        .toast {
+            border-radius: 16px;
+            background: rgba(18,22,38,.96);
+            backdrop-filter: blur(10px);
+        }
+
+        .toast.success {
+            border-color: rgba(98,245,197,.22);
+        }
+
+        .toast.error {
+            border-color: rgba(255,95,115,.22);
+        }
+
+        @media (max-width: 900px) {
+            .app-shell {
+                grid-template-columns: 210px minmax(0, 1fr);
+            }
+
+            .main {
+                padding: 18px 18px 90px;
+            }
+        }
+
+        @media (max-width: 680px) {
+            .sidebar {
+                padding: 12px;
+                background: rgba(12,16,28,.98);
+            }
+
+            .brand {
+                padding: 8px 10px;
+                border-radius: 16px;
+                margin-bottom: 12px;
+            }
+
+            .brand::after {
+                display: none;
+            }
+
+            .nav-button {
+                justify-content: center;
+                min-height: 42px;
+            }
+
+            .nav-button .icon {
+                display: none;
+            }
+
+            .main {
+                padding: 14px 14px 82px;
+            }
+
+            .topbar {
+                margin-bottom: 14px;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .panel,
+            .stat-card,
+            .program-card,
+            .line-card {
+                border-radius: 20px;
+            }
+
+            .fab {
+                width: 58px;
+                height: 58px;
+                border-radius: 18px;
+            }
+        }
+    </style>
+
+
+    <style id="svg-complete-polish">
+        .brand {
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+            margin: 4px 0 26px;
+            padding: 9px 10px;
+            gap: 10px;
+            overflow: hidden;
+        }
+
+        .brand::after {
+            display: none !important;
+            content: none !important;
+        }
+
+        .brand-icon {
+            flex: 0 0 38px;
+            width: 38px;
+            height: 38px;
+        }
+
+        .brand-copy {
+            display: grid;
+            min-width: 0;
+            max-width: calc(100% - 48px);
+            gap: 4px;
+            line-height: 1;
+        }
+
+        .brand-name {
+            min-width: 0;
+            overflow: visible;
+            color: #f7f8ff;
+            font-size: 16px;
+            font-weight: 820;
+            letter-spacing: -.45px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .brand-subtitle {
+            color: #7f8aa2;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .brand-badge {
+            display: none !important;
+        }
+
+        .title-with-icon,
+        .label-with-icon,
+        .meta-with-icon,
+        .status-inline,
+        .line-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        h2.title-with-icon,
+        h3.title-with-icon,
+        h4.title-with-icon {
+            width: fit-content;
+        }
+
+        .title-with-icon > .icon,
+        .label-with-icon > .icon {
+            color: #9e97ff;
+        }
+
+        .update-panel-title.title-with-icon {
+            display: inline-flex;
+        }
+
+        .update-panel-title .icon,
+        .label-with-icon .icon,
+        .pending-title .icon {
+            width: 15px;
+            height: 15px;
+        }
+
+        .update-button,
+        .tag-picker-button,
+        .chip,
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .update-button {
+            justify-content: center;
+        }
+
+        .update-button .icon,
+        .chip .icon,
+        .meta-with-icon .icon,
+        .status-inline .icon,
+        .line-status .icon,
+        .program-dates .icon,
+        .result-box li .icon {
+            width: 15px;
+            height: 15px;
+        }
+
+        .tag-picker-button .tag-chevron {
+            width: 14px;
+            height: 14px;
+            margin-left: 2px;
+            transition: transform .18s ease;
+        }
+
+        .tag-picker.open .tag-chevron {
+            transform: rotate(180deg);
+        }
+
+        .success-title,
+        .success-title .icon,
+        .result-box:first-child li .icon {
+            color: #79f3cb;
+        }
+
+        .danger-title,
+        .danger-title .icon,
+        .result-box:last-child li .icon {
+            color: #ff8192;
+        }
+
+        .result-box ul {
+            display: grid;
+            gap: 8px;
+            padding-left: 0;
+            list-style: none;
+        }
+
+        .result-box li {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .result-box li .icon {
+            flex: 0 0 auto;
+            margin-top: 2px;
+        }
+
+        .empty-state-content {
+            display: grid;
+            justify-items: center;
+            gap: 8px;
+            max-width: 300px;
+        }
+
+        .empty-state-icon {
+            display: grid;
+            place-items: center;
+            width: 48px;
+            height: 48px;
+            margin-bottom: 4px;
+            border: 1px solid rgba(124,114,255,.18);
+            border-radius: 15px;
+            background: rgba(124,114,255,.09);
+            color: #aaa4ff;
+        }
+
+        .empty-state-icon .icon {
+            width: 22px;
+            height: 22px;
+        }
+
+        .empty-state strong {
+            margin-bottom: 0;
+        }
+
+        .line-status {
+            width: fit-content;
+        }
+
+        .line-status.waiting .icon,
+        .status-inline .icon {
+            flex: 0 0 auto;
+        }
+
+        .meta-with-icon {
+            min-width: 0;
+        }
+
+        .meta-with-icon > span {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .program-card-time .icon {
+            width: 18px;
+            height: 18px;
+            color: #9e97ff;
+        }
+
+        .program-dates .meta-with-icon {
+            display: flex;
+        }
+
+        .check-all .icon {
+            width: 15px;
+            height: 15px;
+            color: #8f89ff;
+        }
+
+        .toast {
+            grid-template-columns: none;
+        }
+
+        .toast .icon {
+            flex: 0 0 auto;
+            width: 18px;
+            height: 18px;
+        }
+
+        .toast.success .icon { color: #79f3cb; }
+        .toast.error .icon { color: #ff8192; }
+
+        .spin {
+            animation: iconSpin .85s linear infinite;
+        }
+
+        @keyframes iconSpin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 900px) {
+            .brand {
+                padding-inline: 8px;
+            }
+
+            .brand-icon {
+                flex-basis: 36px;
+                width: 36px;
+                height: 36px;
+            }
+
+            .brand-name {
+                font-size: 14px;
+            }
+
+        }
+
+        @media (max-width: 680px) {
+            .brand {
+                margin: 0 0 10px;
+                padding: 8px 10px;
+            }
+
+            .brand-copy {
+                display: grid;
+            }
+
+        }
+    </style>
+
 </head>
 <body>
+
+    <svg class="svg-sprite" aria-hidden="true" focusable="false">
+        <symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.73a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92z"/></symbol>
+        <symbol id="i-dashboard" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></symbol>
+        <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></symbol>
+        <symbol id="i-lines" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+        <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+        <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+        <symbol id="i-x" viewBox="0 0 24 24"><path d="m18 6-12 12M6 6l12 12"/></symbol>
+        <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M20 16.5v3a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19.5v-3"/></symbol>
+        <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.8 12.8 0 0 1 22 2c0 2.72-.78 7.5-6.05 11a22.4 22.4 0 0 1-3.95 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/><circle cx="16" cy="8" r="1"/></symbol>
+        <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+        <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.07.07l2-2a5 5 0 0 0-7.07-7.07l-1.15 1.15"/><path d="M14 11a5 5 0 0 0-7.07-.07l-2 2A5 5 0 0 0 12 20l1.15-1.15"/></symbol>
+        <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+        <symbol id="i-update" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.34 5.66"/><path d="M20 4v7h-7"/></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+        <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 2.5 17.5A2 2 0 0 0 4.2 20h15.6a2 2 0 0 0 1.7-2.5L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+        <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+        <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></symbol>
+        <symbol id="i-install" viewBox="0 0 24 24"><path d="M12 3v10"/><path d="m8 9 4 4 4-4"/><rect x="4" y="16" width="16" height="5" rx="2"/></symbol>
+        <symbol id="i-tag" viewBox="0 0 24 24"><path d="M20 13 13 20a2 2 0 0 1-2.8 0L4 13.8V4h9.8L20 10.2a2 2 0 0 1 0 2.8z"/><circle cx="8.5" cy="8.5" r="1.5"/></symbol>
+        <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 6v5h-5"/><path d="M4 18v-5h5"/><path d="M6.1 9a7 7 0 0 1 11.7-2.6L20 11M4 13l2.2 4.6A7 7 0 0 0 17.9 15"/></symbol>
+        <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 15H6L5 6"/><path d="M10 11v5M14 11v5"/></symbol>
+        <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z"/></symbol>
+        <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h12l2 2v16H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></symbol>
+        <symbol id="i-clear" viewBox="0 0 24 24"><path d="m3 16 8.5-8.5a2 2 0 0 1 2.8 0l4.2 4.2a2 2 0 0 1 0 2.8L12 21H7z"/><path d="m9 10 7 7M13 21h8"/></symbol>
+        <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7z"/></symbol>
+        <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+        <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></symbol>
+        <symbol id="i-text" viewBox="0 0 24 24"><path d="M4 6V4h16v2M9 20h6M12 4v16"/></symbol>
+        <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 9 5-9 5-9-5z"/><path d="m3 12 9 5 9-5M3 17l9 5 9-5"/></symbol>
+        <symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M9 2h6M12 5v3M12 13l3-2"/></symbol>
+        <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+        <symbol id="i-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.7 2.7L16.5 9"/></symbol>
+        <symbol id="i-x-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+        <symbol id="i-loader" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.2-8.55"/></symbol>
+        <symbol id="i-phone-call" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.4 2.1L8 9.7a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.8.3 1.7.5 2.6.6a2 2 0 0 1 2 2.3z"/><path d="M15 5h4v4M14 10l5-5"/></symbol>
+        <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></symbol>
+        <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1z"/></symbol>
+    </svg>
+
     <div class="app-shell">
         <aside class="sidebar">
             <div class="brand">
-                <span class="brand-icon">📱</span>
-                <span>AutoStatues</span>
+                <span class="brand-icon"><svg class="icon"><use href="#i-phone"></use></svg></span>
+                <span class="brand-copy">
+                    <span class="brand-name">AutoStatues</span>
+                    <span class="brand-subtitle">Studio</span>
+                </span>
             </div>
 
             <nav class="nav">
                 <button class="nav-button active" data-section="dashboard">
-                    Dashboard
+                    <svg class="icon"><use href="#i-dashboard"></use></svg>
+                    <span>Dashboard</span>
                 </button>
                 <button class="nav-button" data-section="estados">
-                    Estados
+                    <svg class="icon"><use href="#i-image"></use></svg>
+                    <span>Estados</span>
                 </button>
                 <button class="nav-button" data-section="lineas">
-                    Líneas (<span id="nav-line-count">0</span>)
+                    <svg class="icon"><use href="#i-lines"></use></svg>
+                    <span>Líneas <span class="nav-count" id="nav-line-count">0</span></span>
                 </button>
             </nav>
 
             <div class="update-panel">
                 <div class="update-panel-header">
-                    <span class="update-panel-title">Actualizaciones</span>
+                    <span class="update-panel-title title-with-icon"><svg class="icon"><use href="#i-update"></use></svg><span>Actualizaciones</span></span>
                     <span id="update-version" class="update-version">v1.0.0</span>
                 </div>
 
@@ -1353,15 +2873,18 @@
                 </div>
 
                 <button type="button" id="btn-update-search" class="update-button">
-                    Buscar actualización
+                    <svg class="icon"><use href="#i-update"></use></svg>
+                    <span>Buscar actualización</span>
                 </button>
 
                 <button type="button" id="btn-update-download" class="update-button primary" hidden>
-                    Descargar actualización
+                    <svg class="icon"><use href="#i-download"></use></svg>
+                    <span>Descargar actualización</span>
                 </button>
 
                 <button type="button" id="btn-update-install" class="update-button install" hidden>
-                    Reiniciar e instalar
+                    <svg class="icon"><use href="#i-install"></use></svg>
+                    <span>Reiniciar e instalar</span>
                 </button>
             </div>
 
@@ -1374,10 +2897,12 @@
 
                 <div class="topbar-actions" id="view-controls">
                     <button class="view-button active" data-view="grid">
-                        Cuadrado
+                        <svg class="icon"><use href="#i-grid"></use></svg>
+                        <span>Cuadrícula</span>
                     </button>
                     <button class="view-button" data-view="list">
-                        Lista
+                        <svg class="icon"><use href="#i-list"></use></svg>
+                        <span>Lista</span>
                     </button>
                 </div>
             </header>
@@ -1385,9 +2910,10 @@
             <section id="section-dashboard" class="section active">
                 <div id="lista-programaciones" class="dashboard-grid">
                     <div class="empty-state">
-                        <div>
+                        <div class="empty-state-content">
+                            <span class="empty-state-icon"><svg class="icon"><use href="#i-calendar"></use></svg></span>
                             <strong>Aún no hay estados programados</strong>
-                            Tocá el botón + para crear el primero.
+                            <span>Tocá el botón de agregar para crear el primero.</span>
                         </div>
                     </div>
                 </div>
@@ -1396,25 +2922,29 @@
             <section id="section-estados" class="section">
                 <div class="stats-row">
                     <div class="stat-card">
+                        <div class="stat-icon"><svg class="icon"><use href="#i-upload"></use></svg></div>
                         <span>Publicadas</span>
                         <strong id="progreso-procesadas">0</strong>
                     </div>
                     <div class="stat-card">
+                        <div class="stat-icon"><svg class="icon"><use href="#i-users"></use></svg></div>
                         <span>Total</span>
                         <strong id="progreso-total">0</strong>
                     </div>
                     <div class="stat-card">
+                        <div class="stat-icon"><svg class="icon"><use href="#i-check"></use></svg></div>
                         <span>Correctas</span>
                         <strong id="progreso-correctas">0</strong>
                     </div>
                     <div class="stat-card">
+                        <div class="stat-icon danger"><svg class="icon"><use href="#i-x"></use></svg></div>
                         <span>Fallidas</span>
                         <strong id="progreso-fallidas">0</strong>
                     </div>
                 </div>
 
                 <div id="panel-progreso" class="panel">
-                    <h2>Progreso de publicación</h2>
+                    <h2 class="title-with-icon"><svg class="icon"><use href="#i-upload"></use></svg><span>Progreso de publicación</span></h2>
 
                     <div class="line-summary">
                         <span>
@@ -1437,7 +2967,7 @@
 
                     <div id="alerta-seguridad" class="security-alert">
                         <div>
-                            <strong>⚠️ Corte automático de seguridad</strong>
+                            <strong class="title-with-icon"><svg class="icon"><use href="#i-alert"></use></svg><span>Corte automático de seguridad</span></strong>
                             <p id="detalle-seguridad">
                                 La publicación fue detenida porque falló el 80% o más del grupo.
                             </p>
@@ -1449,26 +2979,28 @@
                                 id="btn-reanudar-seguridad"
                                 class="warning-button"
                             >
-                                Reanudar
+                                <svg class="icon"><use href="#i-play"></use></svg>
+                                <span>Reanudar</span>
                             </button>
                             <button
                                 type="button"
                                 id="btn-cancelar-seguridad"
                                 class="small-danger"
                             >
-                                Cancelar
+                                <svg class="icon"><use href="#i-stop"></use></svg>
+                                <span>Cancelar</span>
                             </button>
                         </div>
                     </div>
 
                     <div class="result-columns">
                         <div class="result-box">
-                            <h4>✅ Líneas publicadas</h4>
+                            <h4 class="title-with-icon success-title"><svg class="icon"><use href="#i-check-circle"></use></svg><span>Líneas publicadas</span></h4>
                             <ul id="lista-correctas"></ul>
                         </div>
 
                         <div class="result-box">
-                            <h4>❌ Líneas fallidas</h4>
+                            <h4 class="title-with-icon danger-title"><svg class="icon"><use href="#i-x-circle"></use></svg><span>Líneas fallidas</span></h4>
                             <ul id="lista-fallidas"></ul>
                         </div>
                     </div>
@@ -1477,7 +3009,7 @@
 
             <section id="section-lineas" class="section">
                 <div class="panel">
-                    <h2>Conectar una nueva línea</h2>
+                    <h2 class="title-with-icon"><svg class="icon"><use href="#i-link"></use></svg><span>Conectar una nueva línea</span></h2>
 
                     <div class="line-toolbar" style="grid-template-columns:minmax(220px,1fr) auto;">
                         <input
@@ -1488,19 +3020,20 @@
                         >
 
                         <button type="button" id="btn-conectar" class="primary-button">
-                            Conectar línea
+                            <svg class="icon"><use href="#i-link"></use></svg>
+                            <span>Conectar línea</span>
                         </button>
                     </div>
 
                     <p id="mensaje-linea"></p>
-                    <div class="pending-title">Líneas pendientes de vinculación</div>
+                    <div class="pending-title title-with-icon"><svg class="icon"><use href="#i-loader"></use></svg><span>Líneas pendientes de vinculación</span></div>
                     <div id="lista-lineas-pendientes" class="lines-grid"></div>
                 </div>
 
                 <div class="panel">
                     <div class="section-heading-row">
                         <div>
-                            <h2>Líneas conectadas</h2>
+                            <h2 class="title-with-icon"><svg class="icon"><use href="#i-check-circle"></use></svg><span>Líneas conectadas</span></h2>
                             <p>Acá se muestran únicamente las líneas que ya están listas para publicar.</p>
                         </div>
                     </div>
@@ -1519,7 +3052,8 @@
                             id="btn-limpiar-busqueda-seccion"
                             class="secondary-button"
                         >
-                            Limpiar
+                            <svg class="icon"><use href="#i-clear"></use></svg>
+                            <span>Limpiar</span>
                         </button>
                     </div>
 
@@ -1531,13 +3065,13 @@
         </main>
     </div>
 
-    <button id="btn-nuevo-estado" class="fab" title="Crear nuevo estado">+</button>
+    <button id="btn-nuevo-estado" class="fab" title="Crear nuevo estado" aria-label="Crear nuevo estado"><svg class="icon"><use href="#i-plus"></use></svg></button>
 
     <div id="modal-crear" class="modal">
         <div class="modal-card create-modal-card">
             <div class="modal-header">
-                <h2>Nuevo estado</h2>
-                <button type="button" id="cerrar-modal-crear" class="icon-button">×</button>
+                <h2 class="title-with-icon"><svg class="icon"><use href="#i-plus"></use></svg><span>Nuevo estado</span></h2>
+                <button type="button" id="cerrar-modal-crear" class="icon-button" aria-label="Cerrar"><svg class="icon"><use href="#i-x"></use></svg></button>
             </div>
 
             <div class="modal-body create-modal-body">
@@ -1545,7 +3079,7 @@
                     <div class="create-layout">
                         <section class="create-image-column">
                             <div class="field">
-                                <label>Imagen del estado</label>
+                                <label class="label-with-icon"><svg class="icon"><use href="#i-image"></use></svg><span>Imagen del estado</span></label>
 
                                 <label class="upload-zone" for="foto">
                                     <input
@@ -1556,7 +3090,7 @@
                                     >
 
                                     <div id="upload-placeholder" class="upload-placeholder">
-                                        <span style="font-size: 46px;">🖼️</span>
+                                        <span class="upload-icon"><svg class="icon"><use href="#i-upload"></use></svg></span>
                                         <b>Elegir una imagen</b>
                                         <span>PNG o JPG</span>
                                     </div>
@@ -1568,7 +3102,7 @@
 
                         <section class="create-info-column">
                             <div class="field">
-                                <label for="texto">Texto opcional</label>
+                                <label for="texto" class="label-with-icon"><svg class="icon"><use href="#i-text"></use></svg><span>Texto opcional</span></label>
                                 <textarea
                                     id="texto"
                                     class="textarea"
@@ -1578,7 +3112,7 @@
 
                             <div class="form-grid">
                                 <div class="field">
-                                    <label for="lineas-por-grupo">Líneas por envío</label>
+                                    <label for="lineas-por-grupo" class="label-with-icon"><svg class="icon"><use href="#i-layers"></use></svg><span>Líneas por envío</span></label>
                                     <input
                                         type="number"
                                         id="lineas-por-grupo"
@@ -1593,7 +3127,7 @@
                                 </div>
 
                                 <div class="field">
-                                    <label for="intervalo-minutos">Minutos entre envíos</label>
+                                    <label for="intervalo-minutos" class="label-with-icon"><svg class="icon"><use href="#i-timer"></use></svg><span>Minutos entre envíos</span></label>
                                     <input
                                         type="number"
                                         id="intervalo-minutos"
@@ -1608,7 +3142,7 @@
                                 </div>
 
                                 <div class="field full">
-                                    <label for="hora-programada">Hora diaria</label>
+                                    <label for="hora-programada" class="label-with-icon"><svg class="icon"><use href="#i-clock"></use></svg><span>Hora diaria</span></label>
                                     <input type="time" id="hora-programada" class="input">
                                     <span class="help">Solo se usa al programar diariamente.</span>
                                 </div>
@@ -1616,7 +3150,7 @@
 
                             <div class="line-selector-panel">
                                 <div class="line-selector-header">
-                                    <h3>Elegir líneas</h3>
+                                    <h3 class="title-with-icon"><svg class="icon"><use href="#i-lines"></use></svg><span>Elegir líneas</span></h3>
                                     <span id="cantidad-lineas-seleccionadas" class="selected-count">0 línea(s)</span>
                                 </div>
 
@@ -1630,14 +3164,16 @@
                                     >
 
                                     <button type="button" id="btn-limpiar-busqueda" class="secondary-button">
-                                        Limpiar
+                                        <svg class="icon"><use href="#i-clear"></use></svg>
+                                        <span>Limpiar</span>
                                     </button>
                                 </div>
 
                                 <div class="line-selector-summary">
                                     <label class="check-all">
                                         <input type="checkbox" id="seleccionar-todas">
-                                        Seleccionar todas
+                                        <svg class="icon"><use href="#i-check-circle"></use></svg>
+                                        <span>Seleccionar todas</span>
                                     </label>
 
                                     <span id="resultado-busqueda">0 líneas conectadas.</span>
@@ -1648,11 +3184,13 @@
 
                             <div class="modal-actions">
                                 <button type="submit" id="btn-publicar" class="primary-button">
-                                    🚀 Subir ahora
+                                    <svg class="icon"><use href="#i-rocket"></use></svg>
+                                    <span>Subir ahora</span>
                                 </button>
 
                                 <button type="button" id="btn-programar" class="secondary-button">
-                                    🕒 Programar diariamente
+                                    <svg class="icon"><use href="#i-clock"></use></svg>
+                                    <span>Programar diariamente</span>
                                 </button>
                             </div>
 
@@ -1667,8 +3205,8 @@
     <div id="modal-editar" class="modal">
         <div class="modal-card" style="width: min(600px, 96vw);">
             <div class="modal-header">
-                <h2>Editar estado programado</h2>
-                <button type="button" id="cerrar-modal-editar" class="icon-button">×</button>
+                <h2 class="title-with-icon"><svg class="icon"><use href="#i-edit"></use></svg><span>Editar estado programado</span></h2>
+                <button type="button" id="cerrar-modal-editar" class="icon-button" aria-label="Cerrar"><svg class="icon"><use href="#i-x"></use></svg></button>
             </div>
 
             <div class="modal-body">
@@ -1681,7 +3219,7 @@
                 >
 
                 <div class="field">
-                    <label for="editar-foto">Cambiar imagen</label>
+                    <label for="editar-foto" class="label-with-icon"><svg class="icon"><use href="#i-image"></use></svg><span>Cambiar imagen</span></label>
                     <input
                         type="file"
                         id="editar-foto"
@@ -1692,7 +3230,7 @@
                 </div>
 
                 <div class="field" style="margin-top:14px;">
-                    <label for="editar-texto">Texto opcional</label>
+                    <label for="editar-texto" class="label-with-icon"><svg class="icon"><use href="#i-text"></use></svg><span>Texto opcional</span></label>
                     <textarea
                         id="editar-texto"
                         class="textarea"
@@ -1701,7 +3239,7 @@
                 </div>
 
                 <div class="field" style="margin-top:14px;">
-                    <label for="editar-hora">Hora diaria</label>
+                    <label for="editar-hora" class="label-with-icon"><svg class="icon"><use href="#i-clock"></use></svg><span>Hora diaria</span></label>
                     <input type="time" id="editar-hora" class="input">
                 </div>
 
@@ -1709,11 +3247,13 @@
 
                 <div class="modal-actions">
                     <button type="button" id="btn-guardar-edicion" class="primary-button">
-                        Guardar cambios
+                        <svg class="icon"><use href="#i-save"></use></svg>
+                        <span>Guardar cambios</span>
                     </button>
 
                     <button type="button" id="btn-cancelar-edicion" class="secondary-button">
-                        Cancelar
+                        <svg class="icon"><use href="#i-x"></use></svg>
+                        <span>Cancelar</span>
                     </button>
                 </div>
             </div>
@@ -1752,12 +3292,21 @@
             });
         }
 
+        function iconoSVG(nombre, clase = '') {
+            return `<svg class="icon ${clase}" aria-hidden="true"><use href="#i-${nombre}"></use></svg>`;
+        }
+
         function toast(mensaje, tipo = '') {
             const contenedor = document.getElementById('toast-container');
             const elemento = document.createElement('div');
 
             elemento.className = `toast ${tipo}`.trim();
-            elemento.textContent = mensaje;
+            const icono = tipo === 'success'
+                ? 'check-circle'
+                : tipo === 'error'
+                    ? 'x-circle'
+                    : 'info';
+            elemento.innerHTML = `${iconoSVG(icono)}<span>${escaparHTML(mensaje)}</span>`;
             contenedor.appendChild(elemento);
 
             setTimeout(() => elemento.remove(), 4200);
@@ -1831,16 +3380,18 @@
 
         function mostrarEstado(estado) {
             const estados = {
-                iniciando: '⏳ Iniciando',
-                esperando_qr: '📱 Esperando QR',
-                conectado: '✅ Conectado',
-                desconectado: '❌ Desconectado',
-                reconectando: '🔄 Desconectado · reconectando',
-                sesion_cerrada: '⚠️ Sesión cerrada',
-                error: '❌ Error'
+                iniciando: ['loader', 'Iniciando'],
+                esperando_qr: ['phone', 'Esperando QR'],
+                conectado: ['check-circle', 'Conectado'],
+                desconectado: ['x-circle', 'Desconectado'],
+                reconectando: ['refresh', 'Desconectado · reconectando'],
+                sesion_cerrada: ['alert', 'Sesión cerrada'],
+                error: ['x-circle', 'Error']
             };
 
-            return estados[estado] || estado;
+            const valor = estados[estado];
+            if (!valor) return escaparHTML(estado);
+            return `<span class="status-inline">${iconoSVG(valor[0])}<span>${valor[1]}</span></span>`;
         }
 
 
@@ -1893,9 +3444,9 @@
                         data-id="${linea.id}"
                         aria-expanded="${estaAbierto ? 'true' : 'false'}"
                     >
-                        <span>🏷</span>
+                        ${iconoSVG('tag')}
                         <span>Etiquetas</span>
-                        <span>+</span>
+                        ${iconoSVG('chevron-down', 'tag-chevron')}
                     </button>
                     <div class="tag-menu" role="menu" aria-label="Etiquetas de ${escaparHTML(linea.nombre)}">
                         ${opciones}
@@ -1988,7 +3539,7 @@
                                 ${escaparHTML(linea.nombre)}
                                 ${etiquetaHTML(linea.etiqueta)}
                             </strong>
-                            <span>${linea.numero ? `📞 ${escaparHTML(linea.numero)}` : 'Número no disponible'}</span>
+                            <span class="meta-with-icon">${iconoSVG('phone-call')}<span>${linea.numero ? escaparHTML(linea.numero) : 'Número no disponible'}</span></span>
                         </span>
                     `;
                     selector.appendChild(opcion);
@@ -2034,8 +3585,8 @@
                                 ${etiquetaHTML(linea.etiqueta)}
                             </h3>
                             <div class="line-details">
-                                <span class="line-status">✅ Conectado</span>
-                                ${linea.numero ? `<span>📞 ${escaparHTML(linea.numero)}</span>` : ''}
+                                <span class="line-status">${iconoSVG('check-circle')}<span>Conectado</span></span>
+                                ${linea.numero ? `<span class="meta-with-icon">${iconoSVG('phone-call')}<span>${escaparHTML(linea.numero)}</span></span>` : ''}
                             </div>
                         </div>
                         <div class="line-actions">
@@ -2045,14 +3596,16 @@
                                 class="small-secondary btn-reconectar"
                                 data-id="${linea.id}"
                             >
-                                Reconectar
+                                ${iconoSVG('refresh')}
+                                <span>Reconectar</span>
                             </button>
                             <button
                                 type="button"
                                 class="small-danger btn-eliminar"
                                 data-id="${linea.id}"
                             >
-                                Eliminar
+                                ${iconoSVG('trash')}
+                                <span>Eliminar</span>
                             </button>
                         </div>
                     `;
@@ -2104,14 +3657,16 @@
                                 class="small-secondary btn-reconectar"
                                 data-id="${linea.id}"
                             >
-                                Reconectar
+                                ${iconoSVG('refresh')}
+                                <span>Reconectar</span>
                             </button>
                             <button
                                 type="button"
                                 class="small-danger btn-eliminar"
                                 data-id="${linea.id}"
                             >
-                                Eliminar
+                                ${iconoSVG('trash')}
+                                <span>Eliminar</span>
                             </button>
                         </div>
                     `;
@@ -2227,10 +3782,10 @@
                         boton.addEventListener('click', async evento => {
                             const botonActual = evento.currentTarget;
                             const id = botonActual.dataset.id;
-                            const textoOriginal = botonActual.textContent;
+                            const contenidoOriginal = botonActual.innerHTML;
 
                             botonActual.disabled = true;
-                            botonActual.textContent = 'Reconectando...';
+                            botonActual.innerHTML = `${iconoSVG('loader', 'spin')}<span>Reconectando...</span>`;
 
                             try {
                                 const respuestaReconectar = await fetch(
@@ -2259,7 +3814,7 @@
                             } catch (error) {
                                 toast(error.message, 'error');
                                 botonActual.disabled = false;
-                                botonActual.textContent = textoOriginal;
+                                botonActual.innerHTML = contenidoOriginal;
                             }
                         });
                     });
@@ -2381,12 +3936,11 @@
                     (progreso.lineasCorrectas || [])
                         .map(linea => `
                             <li>
-                                ${escaparHTML(linea.nombre)}
-                                ${
-                                    linea.numero
-                                        ? `— ${escaparHTML(linea.numero)}`
-                                        : ''
-                                }
+                                ${iconoSVG('check-circle')}
+                                <span>
+                                    ${escaparHTML(linea.nombre)}
+                                    ${linea.numero ? `— ${escaparHTML(linea.numero)}` : ''}
+                                </span>
                             </li>
                         `)
                         .join('');
@@ -2395,8 +3949,8 @@
                     (progreso.lineasFallidas || [])
                         .map(linea => `
                             <li>
-                                ${escaparHTML(linea.nombre)}
-                                — ${escaparHTML(linea.error)}
+                                ${iconoSVG('x-circle')}
+                                <span>${escaparHTML(linea.nombre)} — ${escaparHTML(linea.error)}</span>
                             </li>
                         `)
                         .join('');
@@ -2548,30 +4102,35 @@
                     >
 
                     <div class="program-card-body">
-                        <div class="program-card-time">
-                            Todos los días a las ${escaparHTML(item.hora)}
+                        <div class="program-card-time title-with-icon">
+                            ${iconoSVG('clock')}
+                            <span>Todos los días a las ${escaparHTML(item.hora)}</span>
                         </div>
 
                         <div class="program-meta">
                             <span class="chip success">
-                                ${mostrarEstadoProgramacion(item.estado)}
+                                ${iconoSVG('calendar')}
+                                <span>${mostrarEstadoProgramacion(item.estado)}</span>
                             </span>
                             <span class="chip">
-                                ${item.cantidadLineas} líneas
+                                ${iconoSVG('users')}
+                                <span>${item.cantidadLineas} líneas</span>
                             </span>
                             <span class="chip">
-                                Grupos de ${item.lineasPorGrupo}
+                                ${iconoSVG('layers')}
+                                <span>Grupos de ${item.lineasPorGrupo}</span>
                             </span>
                             <span class="chip">
-                                ${item.intervaloMinutos} min
+                                ${iconoSVG('timer')}
+                                <span>${item.intervaloMinutos} min</span>
                             </span>
                         </div>
 
                         <p class="program-card-text">${textoVisible}</p>
 
                         <div class="program-dates">
-                            <span>Próxima: ${escaparHTML(proxima)}</span>
-                            <span>Última: ${escaparHTML(ultima)}</span>
+                            <span class="meta-with-icon">${iconoSVG('calendar')}<span>Próxima: ${escaparHTML(proxima)}</span></span>
+                            <span class="meta-with-icon">${iconoSVG('history')}<span>Última: ${escaparHTML(ultima)}</span></span>
                         </div>
 
                         <div class="program-actions">
@@ -2581,7 +4140,8 @@
                                 data-id="${item.id}"
                                 ${puedeModificar ? '' : 'disabled'}
                             >
-                                Editar
+                                ${iconoSVG('edit')}
+                                <span>Editar</span>
                             </button>
 
                             <button
@@ -2590,7 +4150,8 @@
                                 data-id="${item.id}"
                                 ${puedeModificar ? '' : 'disabled'}
                             >
-                                Eliminar
+                                ${iconoSVG('trash')}
+                                <span>Eliminar</span>
                             </button>
                         </div>
                     </div>
@@ -2619,9 +4180,10 @@
                 if (!data.programaciones.length) {
                     contenedor.innerHTML = `
                         <div class="empty-state">
-                            <div>
+                            <div class="empty-state-content">
+                                <span class="empty-state-icon">${iconoSVG('calendar')}</span>
                                 <strong>Aún no hay estados programados</strong>
-                                Tocá el botón + para crear el primero.
+                                <span>Tocá el botón de agregar para crear el primero.</span>
                             </div>
                         </div>
                     `;
@@ -3085,9 +4647,9 @@
             botonBuscar.disabled = ['buscando', 'descargando', 'instalando'].includes(
                 estado.estado
             );
-            botonBuscar.textContent = estado.estado === 'buscando'
-                ? 'Buscando...'
-                : 'Buscar actualización';
+            botonBuscar.innerHTML = estado.estado === 'buscando'
+                ? `${iconoSVG('loader', 'spin')}<span>Buscando...</span>`
+                : `${iconoSVG('update')}<span>Buscar actualización</span>`;
 
             botonDescargar.hidden = estado.estado !== 'disponible';
             botonDescargar.disabled = estado.estado !== 'disponible';
