@@ -487,6 +487,18 @@ function activarProteccionMiddleware({
     const hastaActual = Date.parse(
         proteccionMiddlewarePublicacion.bloqueadaHasta || ''
     );
+    const proteccionActualVigente =
+        proteccionMiddlewarePublicacion.activa === true &&
+        Number.isFinite(hastaActual) &&
+        hastaActual > ahora;
+
+    // Si ya existe un enfriamiento más largo, conservamos también su causa.
+    // Antes se mantenía el tiempo anterior pero se mostraba el código del
+    // último evento corto, produciendo combinaciones contradictorias.
+    if (proteccionActualVigente && hastaActual >= hastaPropuesto) {
+        return obtenerVistaProteccionMiddleware();
+    }
+
     const bloqueadaHastaMs = Number.isFinite(hastaActual)
         ? Math.max(hastaActual, hastaPropuesto)
         : hastaPropuesto;
@@ -834,6 +846,18 @@ function crearControlSeguridadPublicacion(idsLineas = []) {
         promesaAltoTotal,
         resolverAltoTotal
     };
+}
+
+function lineaParticipaEnPublicacionActiva(lineaOId) {
+    const lineaId = typeof lineaOId === 'object'
+        ? lineaOId?.id
+        : lineaOId;
+
+    return Boolean(
+        lineaId &&
+        progresoPublicacion.activo === true &&
+        controlSeguridadPublicacion.idsLineas?.has(lineaId)
+    );
 }
 
 function solicitarAltoTotalPublicacion() {
@@ -4176,12 +4200,15 @@ function programarReinicioSolicitado(lineaId, mensaje) {
 }
 
 function solicitarReconexionManual(linea, retrasoMs = 350) {
+    // Una reconexión manual cierra deliberadamente el socket actual. Si la
+    // línea todavía forma parte de una publicación, esa acción se confundía
+    // con una caída real y detenía las líneas restantes. En ese caso se debe
+    // terminar primero la publicación o usar Alto total.
+    if (lineaParticipaEnPublicacionActiva(linea)) {
+        return false;
+    }
+
     const socketAnterior = linea.socket;
-    registrarCorteDesconexion(
-        linea,
-        `La línea ${linea.nombre} fue desconectada para una reconexión manual.`,
-        'RECONEXION_MANUAL'
-    );
 
     cancelarTemporizadorReconexion(linea);
     cancelarReintentoAudiencia(linea);
@@ -4215,6 +4242,8 @@ function solicitarReconexionManual(linea, retrasoMs = 350) {
 
         iniciarWhatsApp(actual.id);
     }, retrasoMs);
+
+    return true;
 }
 
 function ponerLineaEnCuarentenaPorEnvio(linea, socket, mensaje) {
@@ -7151,19 +7180,38 @@ app.put('/configuracion', (req, res) => {
 
 app.post('/lineas/reconectar-todas', (req, res) => {
     let cantidad = 0;
+    let omitidasPorPublicacion = 0;
 
     for (const linea of lineas.values()) {
         if (linea.estado === 'conectado' || linea.eliminando || linea.reconexionManualEnCurso) {
             continue;
         }
 
-        solicitarReconexionManual(linea, 250);
-        cantidad += 1;
+        if (lineaParticipaEnPublicacionActiva(linea)) {
+            omitidasPorPublicacion += 1;
+            continue;
+        }
+
+        if (solicitarReconexionManual(linea, 250)) {
+            cantidad += 1;
+        }
+    }
+
+    if (!cantidad && omitidasPorPublicacion > 0) {
+        return res.status(409).json({
+            codigo: 'PUBLICACION_ACTIVA',
+            error:
+                'Hay líneas protegidas por una publicación activa. ' +
+                'Esperá a que termine o usá Alto total antes de reconectarlas.'
+        });
     }
 
     res.status(202).json({
         mensaje: cantidad
-            ? `Reconexión iniciada para ${cantidad} línea(s).`
+            ? `Reconexión iniciada para ${cantidad} línea(s).` +
+                (omitidasPorPublicacion
+                    ? ` ${omitidasPorPublicacion} línea(s) de la publicación activa no se modificaron.`
+                    : '')
             : 'No hay líneas pendientes de reconexión.'
     });
 });
@@ -7213,7 +7261,23 @@ app.post('/lineas/:id/reconectar', (req, res) => {
         });
     }
 
-    solicitarReconexionManual(linea, 500);
+    if (lineaParticipaEnPublicacionActiva(linea)) {
+        return res.status(409).json({
+            codigo: 'PUBLICACION_ACTIVA',
+            error:
+                `${linea.nombre} forma parte de una publicación activa. ` +
+                'Esperá a que termine o usá Alto total antes de reconectarla.'
+        });
+    }
+
+    if (!solicitarReconexionManual(linea, 500)) {
+        return res.status(409).json({
+            codigo: 'PUBLICACION_ACTIVA',
+            error:
+                `${linea.nombre} forma parte de una publicación activa. ` +
+                'Esperá a que termine o usá Alto total antes de reconectarla.'
+        });
+    }
 
     res.status(202).json({
         mensaje: `Reconectando la línea ${linea.nombre}.`

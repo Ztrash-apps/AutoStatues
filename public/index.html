@@ -1070,8 +1070,31 @@
 
         .line-selector-toolbar {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
+            grid-template-columns: minmax(150px, 1fr) minmax(178px, auto) auto auto;
             gap: 8px;
+            align-items: center;
+        }
+
+        .line-selector-toolbar .line-order-picker {
+            min-width: 178px;
+        }
+
+        .line-selector-toolbar .line-order-direction {
+            min-width: 104px;
+        }
+
+        .line-selector-toolbar > .secondary-button {
+            min-height: 44px;
+        }
+
+        @media (min-width: 901px) and (max-width: 1100px) {
+            #modal-crear .line-selector-toolbar {
+                grid-template-columns: minmax(178px, 1fr) auto auto;
+            }
+
+            #modal-crear .line-selector-toolbar > #buscar-lineas {
+                grid-column: 1 / -1;
+            }
         }
 
         .line-selector-summary {
@@ -5875,7 +5898,7 @@
             <div class="update-panel">
                 <div class="update-panel-header">
                     <span class="update-panel-title title-with-icon"><svg class="icon"><use href="#i-update"></use></svg><span>Actualizaciones</span></span>
-                    <span id="update-version" class="update-version">v1.0.8</span>
+                    <span id="update-version" class="update-version">v1.0.9</span>
                 </div>
 
                 <p id="update-message" class="update-message">
@@ -5902,7 +5925,7 @@
                 </button>
             </div>
 
-            <div id="sidebar-app-version" class="sidebar-version">AutoStatues 1.0.8</div>
+            <div id="sidebar-app-version" class="sidebar-version">AutoStatues 1.0.9</div>
         </aside>
 
         <main class="main">
@@ -6566,6 +6589,49 @@
                                         autocomplete="off"
                                     >
 
+                                    <div id="selector-orden-lineas-subida" class="line-order-picker">
+                                        <button
+                                            type="button"
+                                            id="btn-orden-lineas-subida"
+                                            class="line-order-button"
+                                            aria-haspopup="listbox"
+                                            aria-expanded="false"
+                                        >
+                                            <span class="line-order-button-copy">
+                                                <small>Ordenar por</small>
+                                                <strong id="texto-orden-lineas-subida">Orden de conexión</strong>
+                                            </span>
+                                            <svg class="icon line-order-chevron"><use href="#i-chevron-down"></use></svg>
+                                        </button>
+                                        <div class="line-order-menu" role="listbox" aria-label="Ordenar líneas para publicar por">
+                                            <button type="button" class="line-order-option active" data-upload-line-order="conexion" role="option" aria-selected="true">
+                                                <span class="line-order-option-mark"></span>
+                                                <span>
+                                                    <strong>Orden de conexión</strong>
+                                                    <small>Según el número asignado a cada línea</small>
+                                                </span>
+                                            </button>
+                                            <button type="button" class="line-order-option" data-upload-line-order="alfabetico" role="option" aria-selected="false">
+                                                <span class="line-order-option-mark"></span>
+                                                <span>
+                                                    <strong>Alfabético</strong>
+                                                    <small>Ordenar las líneas por su nombre</small>
+                                                </span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        id="btn-direccion-lineas-subida"
+                                        class="line-order-direction"
+                                        aria-label="Cambiar a orden descendente"
+                                        title="Cambiar a orden descendente"
+                                    >
+                                        <svg class="icon" aria-hidden="true"><use href="#i-sort"></use></svg>
+                                        <span id="texto-direccion-lineas-subida">Sin líneas</span>
+                                    </button>
+
                                     <button type="button" id="btn-limpiar-busqueda" class="secondary-button">
                                         <svg class="icon"><use href="#i-clear"></use></svg>
                                         <span>Limpiar</span>
@@ -6807,6 +6873,8 @@
         let vistaLineas = 'large';
         let ordenLineas = 'conexion';
         let direccionLineas = 'asc';
+        let ordenLineasSubida = 'conexion';
+        let direccionLineasSubida = 'asc';
         let lineaEditandoId = null;
         let cargandoEstadosActivos = false;
         let proteccionMiddlewareActual = null;
@@ -7796,6 +7864,15 @@
 
             const botonReconectar = evento.target.closest('.btn-reconectar');
             if (botonReconectar) {
+                if (publicacionActivaActual) {
+                    toast(
+                        'Esperá a que termine la publicación o usá Alto total antes de reconectar.',
+                        'warning'
+                    );
+                    actualizarAccionesPublicacion();
+                    return;
+                }
+
                 const id = botonReconectar.dataset.id;
                 const contenidoOriginal = botonReconectar.innerHTML;
                 prepararAperturaQr(id);
@@ -7859,11 +7936,15 @@
             }
         }
 
-        function compararLineas(a, b) {
+        function compararLineasPor(a, b, criterio, direccion) {
             const texto = valor => String(valor || '').toLocaleLowerCase('es');
+            const ordenConexion = linea => {
+                const valor = Number(linea.ordenOriginal ?? linea.ordenConexion);
+                return Number.isFinite(valor) ? valor : Number.MAX_SAFE_INTEGER;
+            };
             let resultado;
 
-            if (ordenLineas === 'alfabetico') {
+            if (criterio === 'alfabetico') {
                 resultado = texto(a.nombre).localeCompare(
                     texto(b.nombre),
                     'es',
@@ -7871,13 +7952,26 @@
                 );
 
                 if (resultado === 0) {
-                    resultado = Number(a.ordenOriginal || 0) - Number(b.ordenOriginal || 0);
+                    resultado = ordenConexion(a) - ordenConexion(b);
                 }
             } else {
-                resultado = Number(a.ordenOriginal || 0) - Number(b.ordenOriginal || 0);
+                resultado = ordenConexion(a) - ordenConexion(b);
             }
 
-            return direccionLineas === 'desc' ? -resultado : resultado;
+            return direccion === 'desc' ? -resultado : resultado;
+        }
+
+        function compararLineas(a, b) {
+            return compararLineasPor(a, b, ordenLineas, direccionLineas);
+        }
+
+        function compararLineasSubida(a, b) {
+            return compararLineasPor(
+                a,
+                b,
+                ordenLineasSubida,
+                direccionLineasSubida
+            );
         }
 
         function actualizarControlesVistaLineas() {
@@ -7920,6 +8014,47 @@
             if (textoDireccion) textoDireccion.textContent = etiqueta;
             if (botonDireccion) {
                 botonDireccion.dataset.direction = direccionLineas;
+                botonDireccion.title = `Cambiar a orden ${siguiente}`;
+                botonDireccion.setAttribute('aria-label', `Cambiar a orden ${siguiente}`);
+            }
+        }
+
+        function actualizarControlesOrdenLineasSubida(totalLineas = cacheLineasSeccion.length) {
+            const selectorOrden = document.getElementById('selector-orden-lineas-subida');
+            const botonOrden = document.getElementById('btn-orden-lineas-subida');
+            const textoOrden = document.getElementById('texto-orden-lineas-subida');
+            const nombreOrden = ordenLineasSubida === 'alfabetico'
+                ? 'Alfabético'
+                : 'Orden de conexión';
+
+            if (textoOrden) textoOrden.textContent = nombreOrden;
+            document.querySelectorAll('[data-upload-line-order]').forEach(opcion => {
+                const estaActiva = opcion.dataset.uploadLineOrder === ordenLineasSubida;
+                opcion.classList.toggle('active', estaActiva);
+                opcion.setAttribute('aria-selected', String(estaActiva));
+            });
+
+            if (botonOrden && selectorOrden) {
+                botonOrden.setAttribute(
+                    'aria-expanded',
+                    String(selectorOrden.classList.contains('open'))
+                );
+            }
+
+            const botonDireccion = document.getElementById('btn-direccion-lineas-subida');
+            const textoDireccion = document.getElementById('texto-direccion-lineas-subida');
+            const esAscendente = direccionLineasSubida === 'asc';
+            const esAlfabetico = ordenLineasSubida === 'alfabetico';
+            const etiqueta = esAlfabetico
+                ? (esAscendente ? 'A → Z' : 'Z → A')
+                : totalLineas
+                    ? (esAscendente ? `1 → ${totalLineas}` : `${totalLineas} → 1`)
+                    : 'Sin líneas';
+            const siguiente = esAscendente ? 'descendente' : 'ascendente';
+
+            if (textoDireccion) textoDireccion.textContent = etiqueta;
+            if (botonDireccion) {
+                botonDireccion.dataset.direction = direccionLineasSubida;
                 botonDireccion.title = `Cambiar a orden ${siguiente}`;
                 botonDireccion.setAttribute('aria-label', `Cambiar a orden ${siguiente}`);
             }
@@ -8438,6 +8573,15 @@
 
             const botonReconectar = evento.target.closest('.btn-reconectar');
             if (botonReconectar) {
+                if (publicacionActivaActual) {
+                    toast(
+                        'Esperá a que termine la publicación o usá Alto total antes de reconectar.',
+                        'warning'
+                    );
+                    actualizarAccionesPublicacion();
+                    return;
+                }
+
                 const id = botonReconectar.dataset.id;
                 const contenidoOriginal = botonReconectar.innerHTML;
                 prepararAperturaQr(id);
@@ -8697,6 +8841,46 @@
                         ? 'Ya existe una publicación en curso.'
                         : '';
             });
+
+            const mensajeReconexiones =
+                'Esperá a que termine la publicación o usá Alto total antes de reconectar.';
+            const controlesReconexiones = [
+                ...document.querySelectorAll('.btn-reconectar'),
+                document.getElementById('btn-reconectar-todas')
+            ].filter(Boolean);
+
+            controlesReconexiones.forEach(boton => {
+                if (publicacionActivaActual) {
+                    if (boton.dataset.bloqueadaPorPublicacion !== 'true') {
+                        boton.dataset.bloqueadaPorPublicacion = 'true';
+                        boton.dataset.deshabilitadaAntesPublicacion = String(boton.disabled);
+                        boton.dataset.tituloAntesPublicacion = boton.title || '';
+                        boton.dataset.ariaAntesPublicacion =
+                            boton.getAttribute('aria-label') || '';
+                    }
+
+                    boton.disabled = true;
+                    boton.title = mensajeReconexiones;
+                    boton.setAttribute('aria-label', mensajeReconexiones);
+                    return;
+                }
+
+                if (boton.dataset.bloqueadaPorPublicacion === 'true') {
+                    boton.disabled =
+                        boton.dataset.deshabilitadaAntesPublicacion === 'true';
+                    boton.title = boton.dataset.tituloAntesPublicacion || '';
+                    const ariaAnterior = boton.dataset.ariaAntesPublicacion || '';
+                    if (ariaAnterior) {
+                        boton.setAttribute('aria-label', ariaAnterior);
+                    } else {
+                        boton.removeAttribute('aria-label');
+                    }
+                    delete boton.dataset.bloqueadaPorPublicacion;
+                    delete boton.dataset.deshabilitadaAntesPublicacion;
+                    delete boton.dataset.tituloAntesPublicacion;
+                    delete boton.dataset.ariaAntesPublicacion;
+                }
+            });
         }
 
         function actualizarProteccionMiddleware(proteccion = {}) {
@@ -8755,19 +8939,19 @@
 
                 selector.innerHTML = '';
 
-                const conectadas = data.lineas.filter(
-                    linea => linea.estado === 'conectado'
-                );
+                const conectadas = data.lineas
+                    .filter(linea => linea.estado === 'conectado')
+                    .map((linea, indice) => ({
+                        ...linea,
+                        ordenOriginal: Number(linea.ordenConexion) || indice + 1
+                    }));
                 const pendientes = data.lineas.filter(
                     linea => linea.estado !== 'conectado'
                 );
 
                 sincronizarModalQr(data.lineas);
 
-                cacheLineasSeccion = conectadas.map((linea, indice) => ({
-                    ...linea,
-                    ordenOriginal: Number(linea.ordenConexion) || indice + 1
-                }));
+                cacheLineasSeccion = conectadas;
 
                 idsLineasConectadas = conectadas
                     .filter(lineaListaParaPublicar)
@@ -8785,18 +8969,20 @@
                     .trim()
                     .toLocaleLowerCase('es');
 
-                const visibles = conectadas.filter(linea =>
-                    !busqueda ||
-                    String(linea.nombre || '')
-                        .toLocaleLowerCase('es')
-                        .includes(busqueda) ||
-                    String(linea.numero || '')
-                        .toLocaleLowerCase('es')
-                        .includes(busqueda) ||
-                    nombreEtiqueta(linea.etiqueta)
-                        .toLocaleLowerCase('es')
-                        .includes(busqueda)
-                );
+                const visibles = conectadas
+                    .filter(linea =>
+                        !busqueda ||
+                        String(linea.nombre || '')
+                            .toLocaleLowerCase('es')
+                            .includes(busqueda) ||
+                        String(linea.numero || '')
+                            .toLocaleLowerCase('es')
+                            .includes(busqueda) ||
+                        nombreEtiqueta(linea.etiqueta)
+                            .toLocaleLowerCase('es')
+                            .includes(busqueda)
+                    )
+                    .sort(compararLineasSubida);
 
                 for (const linea of visibles) {
                     const opcion = document.createElement('label');
@@ -8849,6 +9035,8 @@
                         ? `${visibles.length} resultado(s) · ${visiblesPublicables} lista(s) para publicar.`
                         : `${conectadas.length} conectada(s) · ${idsLineasConectadas.length} lista(s) para publicar.`;
 
+                actualizarControlesOrdenLineasSubida(visibles.length);
+
                 document
                     .querySelectorAll('.seleccionar-linea')
                     .forEach(checkbox => {
@@ -8864,6 +9052,7 @@
                     });
 
                 actualizarCheckboxGeneral();
+                actualizarAccionesPublicacion();
             } catch (error) {
                 if (secuencia !== secuenciaActualizacionLineas) return;
                 console.error('Error consultando las líneas:', error);
@@ -9729,7 +9918,18 @@
 
         document.getElementById('btn-orden-lineas').addEventListener('click', evento => {
             evento.stopPropagation();
+            document.getElementById('selector-orden-lineas-subida').classList.remove('open');
+            document.getElementById('btn-orden-lineas-subida').setAttribute('aria-expanded', 'false');
             const selector = document.getElementById('selector-orden-lineas');
+            const abierto = selector.classList.toggle('open');
+            evento.currentTarget.setAttribute('aria-expanded', String(abierto));
+        });
+
+        document.getElementById('btn-orden-lineas-subida').addEventListener('click', evento => {
+            evento.stopPropagation();
+            document.getElementById('selector-orden-lineas').classList.remove('open');
+            document.getElementById('btn-orden-lineas').setAttribute('aria-expanded', 'false');
+            const selector = document.getElementById('selector-orden-lineas-subida');
             const abierto = selector.classList.toggle('open');
             evento.currentTarget.setAttribute('aria-expanded', String(abierto));
         });
@@ -9743,16 +9943,31 @@
             });
         });
 
+        document.querySelectorAll('[data-upload-line-order]').forEach(opcion => {
+            opcion.addEventListener('click', () => {
+                ordenLineasSubida = opcion.dataset.uploadLineOrder;
+                document.getElementById('selector-orden-lineas-subida').classList.remove('open');
+                document.getElementById('btn-orden-lineas-subida').setAttribute('aria-expanded', 'false');
+                actualizarLineas();
+            });
+        });
+
         document.addEventListener('click', evento => {
             if (evento.target.closest('.line-order-picker')) return;
-            const selector = document.getElementById('selector-orden-lineas');
-            selector.classList.remove('open');
+            document.getElementById('selector-orden-lineas').classList.remove('open');
             document.getElementById('btn-orden-lineas').setAttribute('aria-expanded', 'false');
+            document.getElementById('selector-orden-lineas-subida').classList.remove('open');
+            document.getElementById('btn-orden-lineas-subida').setAttribute('aria-expanded', 'false');
         });
 
         document.getElementById('btn-direccion-lineas').onclick = () => {
             direccionLineas = direccionLineas === 'asc' ? 'desc' : 'asc';
             renderizarLineasConectadas(cacheLineasSeccion);
+        };
+
+        document.getElementById('btn-direccion-lineas-subida').onclick = () => {
+            direccionLineasSubida = direccionLineasSubida === 'asc' ? 'desc' : 'asc';
+            actualizarLineas();
         };
 
         document
@@ -10154,6 +10369,15 @@
         }
 
         document.getElementById('btn-reconectar-todas').onclick = async () => {
+            if (publicacionActivaActual) {
+                toast(
+                    'Esperá a que termine la publicación o usá Alto total antes de reconectar.',
+                    'warning'
+                );
+                actualizarAccionesPublicacion();
+                return;
+            }
+
             try {
                 const respuesta = await fetch('/lineas/reconectar-todas', { method: 'POST' });
                 const data = await leerRespuesta(respuesta);
@@ -10397,7 +10621,7 @@
             const botonDescargar = document.getElementById('btn-update-download');
             const botonInstalar = document.getElementById('btn-update-install');
 
-            const versionActual = estado.versionActual || '1.0.8';
+            const versionActual = estado.versionActual || '1.0.9';
             version.textContent = `v${versionActual}`;
             if (versionSidebar) versionSidebar.textContent = `AutoStatues ${versionActual}`;
             mensaje.textContent = estado.mensaje || 'Estado de actualización no disponible.';

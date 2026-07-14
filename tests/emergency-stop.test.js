@@ -32,6 +32,7 @@ function cargarBackendAislado(rutaDatos) {
                 encolarPublicacion,
                 solicitarAltoTotalPublicacion,
                 registrarCorteDesconexion,
+                solicitarReconexionManual,
                 solicitarEliminacionEstado,
                 lineas,
                 estadosActivos,
@@ -517,6 +518,105 @@ test('repite la preparación si el socket cambia antes de sendMessage', async ()
         assert.deepEqual(resultado, { correctas: 1, fallidas: 0 });
         assert.equal(cantidadEnvios, 1);
         assert.equal(backend.obtenerProgreso().procesadas, 1);
+    } finally {
+        fs.rmSync(rutaDatos, { recursive: true, force: true });
+    }
+});
+
+test('una reconexión manual tardía no corta una publicación activa', async () => {
+    const rutaDatos = fs.mkdtempSync(
+        path.join(os.tmpdir(), 'autostatues-reconexion-manual-protegida-')
+    );
+
+    try {
+        const backend = cargarBackendAislado(rutaDatos);
+        const primeraLinea = crearLinea(async () => ({
+            key: {
+                remoteJid: 'status@broadcast',
+                fromMe: true,
+                id: 'ID-PRIMERA-LINEA-PROTEGIDA'
+            },
+            messageTimestamp: Math.floor(Date.now() / 1000)
+        }));
+        const socketPrimeraLinea = primeraLinea.socket;
+
+        let resolverSegundoEnvio;
+        let avisarSegundoEnvio;
+        const segundoEnvioIniciado = new Promise(resolve => {
+            avisarSegundoEnvio = resolve;
+        });
+        const segundoEnvio = new Promise(resolve => {
+            resolverSegundoEnvio = resolve;
+        });
+        const segundaLinea = crearLinea(
+            () => {
+                avisarSegundoEnvio();
+                return segundoEnvio;
+            },
+            {
+                id: ID_LINEA_SIGUIENTE,
+                nombre: 'Segunda línea todavía en publicación',
+                jidPropio: '595888888888@s.whatsapp.net',
+                contacto: '595222222222@s.whatsapp.net'
+            }
+        );
+
+        backend.lineas.set(primeraLinea.id, primeraLinea);
+        backend.lineas.set(segundaLinea.id, segundaLinea);
+
+        const rutaImagen = path.join(
+            rutaDatos,
+            'imagen-reconexion-manual-protegida.png'
+        );
+        fs.writeFileSync(
+            rutaImagen,
+            Buffer.from([
+                0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a,
+                0x1a, 0x0a, 0x00, 0x00, 0x00, 0x00
+            ])
+        );
+
+        const tarea = backend.ejecutarPublicacion({
+            idsLineas: [primeraLinea.id, segundaLinea.id],
+            rutaImagen,
+            texto: 'La reconexión no debe cortar esta publicación',
+            modoRitmo: 'grupos',
+            intervaloSegundos: 10,
+            variacionSegundos: 0,
+            lineasPorGrupo: 2,
+            intervaloMinutos: 0,
+            maximoDestinatariosPorEstado: 1000,
+            origen: 'prueba interna'
+        });
+
+        await segundoEnvioIniciado;
+        assert.equal(backend.obtenerProgreso().activo, true);
+        assert.equal(backend.obtenerProgreso().correctas, 1);
+
+        const reconexionIniciada = backend.solicitarReconexionManual(
+            primeraLinea,
+            100
+        );
+        if (reconexionIniciada) primeraLinea.eliminando = true;
+
+        assert.equal(reconexionIniciada, false);
+        assert.equal(primeraLinea.socket, socketPrimeraLinea);
+        assert.equal(primeraLinea.estado, 'conectado');
+
+        resolverSegundoEnvio({
+            key: {
+                remoteJid: 'status@broadcast',
+                fromMe: true,
+                id: 'ID-SEGUNDA-LINEA-PROTEGIDA'
+            },
+            messageTimestamp: Math.floor(Date.now() / 1000)
+        });
+
+        const resultado = await tarea;
+        assert.deepEqual(resultado, { correctas: 2, fallidas: 0 });
+        assert.equal(backend.obtenerProgreso().estado, 'completado');
+        assert.equal(backend.obtenerProgreso().codigoErrorCorte, null);
+        assert.equal(backend.obtenerProgreso().noProcesadas, 0);
     } finally {
         fs.rmSync(rutaDatos, { recursive: true, force: true });
     }
