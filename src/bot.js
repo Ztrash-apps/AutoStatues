@@ -124,9 +124,16 @@ const MAXIMO_DESTINATARIOS_ESTADO = 1000;
 const LINEAS_POR_LOTE_ELIMINACION = 3;
 const MAXIMOS_INTENTOS_AUDIENCIA = 3;
 const MAXIMOS_INTENTOS_RECONEXION = 5;
+const MAXIMOS_REINICIOS_REQUERIDOS = 3;
+const MAXIMOS_REINTENTOS_PREPARACION_CONEXION = 2;
 const RETRASOS_RECONEXION_MS = [3000, 8000, 15000, 30000, 60000];
 const TIEMPO_MAXIMO_INTENTO_CONEXION_MS = 45000;
 const VENTANA_ESTABILIDAD_CONEXION_MS = 60000;
+const TIEMPO_MAXIMO_RECUPERACION_PUBLICACION_MS =
+    RETRASOS_RECONEXION_MS.reduce((total, retraso) => total + retraso, 0) +
+    (MAXIMOS_INTENTOS_RECONEXION * TIEMPO_MAXIMO_INTENTO_CONEXION_MS) +
+    VENTANA_ESTABILIDAD_CONEXION_MS +
+    30000;
 const TIEMPO_ESPERA_SINCRONIZACION_AUDIENCIA_MS = 60 * 1000;
 const TIEMPO_MAXIMO_AUDIENCIA_MS = 75 * 1000;
 const TIEMPO_MAXIMO_ENVIO_MS = 90000;
@@ -147,8 +154,7 @@ const CODIGOS_DESCONEXION_FATAL = new Set([
     DisconnectReason.loggedOut,
     DisconnectReason.forbidden,
     DisconnectReason.multideviceMismatch,
-    DisconnectReason.badSession,
-    DisconnectReason.connectionReplaced
+    DisconnectReason.badSession
 ].filter(Number.isFinite));
 const CODIGOS_ERROR_CONEXION = new Set([
     DisconnectReason.loggedOut,
@@ -899,7 +905,7 @@ function solicitarAltoTotalPublicacion() {
         ? 'deteniendo_alto_total'
         : 'detenido_alto_total';
     progresoPublicacion.mensaje = activa && progresoPublicacion.envioEnCurso
-        ? 'Alto total solicitado. Esperando la confirmación del envío que ya está en curso para guardar su ID.'
+        ? 'Alto total solicitado. Esperando el resultado del envío que ya está en curso para guardar su ID.'
         : mensaje;
 
     return {
@@ -1082,6 +1088,13 @@ function registrarCorteDesconexion(linea, mensaje, codigo = null) {
     progresoPublicacion.mensajeErrorCorte =
         controlSeguridadPublicacion.corteDesconexion.mensaje;
 
+    if (progresoPublicacion.envioEnCurso) {
+        progresoPublicacion.estado = 'esperando_resultado_envio';
+        progresoPublicacion.mensaje =
+            `La conexión de ${linea.nombre} cambió durante el envío. ` +
+            'Esperando el resultado para conservar el ID y evitar duplicados.';
+    }
+
     if (controlSeguridadPublicacion.resolverCorte) {
         const resolverCorte = controlSeguridadPublicacion.resolverCorte;
         controlSeguridadPublicacion.resolverCorte = null;
@@ -1171,7 +1184,12 @@ async function esperarOperacionPublicacion(
         clase: 'corte',
         datos
     }));
-    const candidatos = [operacion, timeout, corte];
+    const candidatos = [operacion, timeout];
+
+    // Si sendMessage ya está en curso, esperamos su resultado o su timeout.
+    // Un cierre simultáneo no debe ganar la carrera y hacer que se pierda una
+    // clave de estado que la operación todavía puede devolver y guardar.
+    if (!envioEnVuelo) candidatos.push(corte);
 
     // Un Alto total interrumpe preparación, audiencias y esperas. Si el
     // envío ya llegó a WhatsApp, esperamos su resultado para poder guardar
@@ -1195,13 +1213,6 @@ async function esperarOperacionPublicacion(
         try {
             verificarCorteDesconexion();
         } catch (error) {
-            if (envioEnVuelo) {
-                if (controlSeguridadPublicacion.corteDesconexion) {
-                    controlSeguridadPublicacion.corteDesconexion.envioIncierto = true;
-                }
-                error.envioIncierto = true;
-                error.reintentoSeguro = false;
-            }
             throw error;
         }
     }
@@ -2957,6 +2968,7 @@ function cargarLineasGuardadas() {
                 temporizadorEstabilidadConexion: null,
                 temporizadorAudiencia: null,
                 generacionConexion: 0,
+                reiniciosRequeridos: 0,
                 reconexionManualEnCurso: false,
                 resincronizandoAudiencia: false,
                 intentosResincronizacionAudiencia: 0,
@@ -3317,7 +3329,8 @@ function registrarEstadoActivo(
     registroHistorial,
     linea,
     mensajeEstado,
-    destinatariosEstado
+    destinatariosEstado,
+    numeroConfirmado = null
 ) {
     const clave = copiarClaveMensajeEstado(mensajeEstado?.key);
     if (!clave) {
@@ -3346,7 +3359,8 @@ function registrarEstadoActivo(
     const registroLinea = {
         lineaId: linea.id,
         nombre: linea.nombre,
-        numero: linea.jid ? linea.jid.split('@')[0] : null,
+        numero: numeroConfirmado ||
+            (linea.jid ? linea.jid.split('@')[0] : null),
         clave,
         meta: normalizarMetaEstadoActivo(
             { statusJidList: destinatariosEstado },
@@ -4017,7 +4031,6 @@ function programarWatchdogConexion(lineaId, linea, generacion, socket) {
         linea.ultimaDesconexion = new Date().toISOString();
         linea.ultimoCodigoDesconexion = DisconnectReason.timedOut;
         linea.ultimoError = mensaje;
-        registrarCorteDesconexion(linea, mensaje, DisconnectReason.timedOut);
         guardarLineas();
         cerrarSocketSeguro(socket, 'Tiempo de conexión agotado');
         programarReconexionAutomatica(
@@ -4035,6 +4048,7 @@ function bloquearReconexionAutomatica(linea, mensaje, codigo = null, estado = 'r
     linea.jid = null;
     linea.qr = null;
     linea.iniciando = false;
+    linea.reiniciosRequeridos = 0;
     linea.reconexionManualEnCurso = false;
     linea.estado = estado;
     linea.etiqueta = 'caida';
@@ -4068,10 +4082,13 @@ function programarReconexionAutomatica(
 
     const intentosRealizados = Math.max(0, Number(linea.intentosReconexion) || 0);
     if (intentosRealizados >= MAXIMOS_INTENTOS_RECONEXION) {
+        const mensajeFinal =
+            `La línea no pudo reconectarse después de ${MAXIMOS_INTENTOS_RECONEXION} intentos. ` +
+            'Usá Reconectar cuando quieras volver a intentarlo.';
+        registrarCorteDesconexion(linea, mensajeFinal, codigo);
         bloquearReconexionAutomatica(
             linea,
-            `La línea no pudo reconectarse después de ${MAXIMOS_INTENTOS_RECONEXION} intentos. ` +
-                'Usá Reconectar cuando quieras volver a intentarlo.',
+            mensajeFinal,
             codigo
         );
         return false;
@@ -4113,6 +4130,51 @@ function programarReconexionAutomatica(
     return true;
 }
 
+function programarReinicioSolicitado(lineaId, mensaje) {
+    const linea = lineas.get(lineaId);
+    if (
+        !linea ||
+        linea.eliminando ||
+        linea.reconexionBloqueada ||
+        linea.temporizadorReconexion
+    ) {
+        return false;
+    }
+
+    linea.reiniciosRequeridos =
+        Math.max(0, Number(linea.reiniciosRequeridos) || 0) + 1;
+
+    if (linea.reiniciosRequeridos > MAXIMOS_REINICIOS_REQUERIDOS) {
+        linea.reiniciosRequeridos = 0;
+        return programarReconexionAutomatica(
+            lineaId,
+            `${mensaje} WhatsApp solicitó demasiados reinicios seguidos.`,
+            DisconnectReason.restartRequired,
+            1000
+        );
+    }
+
+    const retraso = 350;
+    linea.estado = 'reconectando';
+    linea.conexionEnVerificacion = false;
+    linea.proximoIntentoReconexion = new Date(Date.now() + retraso).toISOString();
+    linea.ultimoError =
+        'WhatsApp solicitó reiniciar la conexión para completar el vínculo.';
+
+    linea.temporizadorReconexion = setTimeout(() => {
+        const actual = lineas.get(lineaId);
+        if (!actual || actual.eliminando || actual.reconexionBloqueada) return;
+
+        actual.temporizadorReconexion = null;
+        actual.proximoIntentoReconexion = null;
+        guardarLineas();
+        iniciarWhatsApp(lineaId);
+    }, retraso);
+
+    guardarLineas();
+    return true;
+}
+
 function solicitarReconexionManual(linea, retrasoMs = 350) {
     const socketAnterior = linea.socket;
     registrarCorteDesconexion(
@@ -4128,6 +4190,7 @@ function solicitarReconexionManual(linea, retrasoMs = 350) {
     linea.reconexionManualEnCurso = true;
     linea.reconexionBloqueada = false;
     linea.intentosReconexion = 0;
+    linea.reiniciosRequeridos = 0;
     linea.ultimoCodigoDesconexion = null;
     linea.proximoIntentoReconexion = null;
     linea.socket = null;
@@ -4184,7 +4247,7 @@ function ponerLineaEnCuarentenaPorEnvio(linea, socket, mensaje) {
     linea.ultimoError = mensaje;
     guardarLineas();
 
-    cerrarSocketSeguro(socket, 'Envío sin confirmación; socket en cuarentena');
+    cerrarSocketSeguro(socket, 'Envío sin resultado; socket en cuarentena');
     programarReconexionAutomatica(
         linea.id,
         mensaje,
@@ -4407,6 +4470,7 @@ async function iniciarWhatsApp(lineaId) {
                 linea.etiqueta = 'activa';
                 linea.reconexionManualEnCurso = false;
                 linea.reconexionBloqueada = false;
+                linea.reiniciosRequeridos = 0;
                 linea.conexionEnVerificacion = debeVerificarEstabilidad;
                 linea.ultimoCodigoDesconexion = null;
                 linea.proximoIntentoReconexion = null;
@@ -4451,9 +4515,12 @@ async function iniciarWhatsApp(lineaId) {
                 }
 
                 const codigoError = obtenerCodigoError(lastDisconnect?.error);
-                const mensajeDesconexion = codigoError
-                    ? `WhatsApp cerró la conexión (código ${codigoError}).`
-                    : 'WhatsApp cerró la conexión.';
+                const mensajeDesconexion =
+                    codigoError === DisconnectReason.connectionReplaced
+                        ? 'WhatsApp reemplazó temporalmente la conexión (código 440).'
+                        : codigoError
+                            ? `WhatsApp cerró la conexión (código ${codigoError}).`
+                            : 'WhatsApp cerró la conexión.';
 
                 cancelarReintentoAudiencia(linea);
                 cancelarTemporizadorReconexion(linea);
@@ -4463,18 +4530,38 @@ async function iniciarWhatsApp(lineaId) {
                 linea.qr = null;
                 linea.iniciando = false;
                 linea.reconexionManualEnCurso = false;
-                linea.etiqueta = 'caida';
                 linea.conexionEnVerificacion = false;
                 linea.ultimaDesconexion = new Date().toISOString();
                 linea.ultimoCodigoDesconexion = codigoError;
 
-                registrarCorteDesconexion(
-                    linea,
-                    mensajeDesconexion,
-                    codigoError
+                console.warn(
+                    `[Conexión] ${linea.nombre} cerró su socket ` +
+                    `(código ${codigoError ?? 'sin código'}, ` +
+                    `publicación activa: ${progresoPublicacion.activo ? 'sí' : 'no'}, ` +
+                    `envío en curso: ${progresoPublicacion.envioEnCurso ? 'sí' : 'no'}).`
                 );
 
-                if (codigoError === 401) {
+                if (
+                    progresoPublicacion.activo &&
+                    progresoPublicacion.envioEnCurso &&
+                    progresoPublicacion.lineaActual?.id === linea.id
+                ) {
+                    progresoPublicacion.estado = 'esperando_resultado_envio';
+                    progresoPublicacion.mensaje =
+                        `La conexión de ${linea.nombre} cambió durante el envío. ` +
+                        'Esperando el resultado para conservar cualquier ID devuelto y evitar duplicados.';
+                }
+
+                if (codigoError === DisconnectReason.restartRequired) {
+                    programarReinicioSolicitado(lineaId, mensajeDesconexion);
+                } else if (codigoError === DisconnectReason.loggedOut) {
+                    linea.etiqueta = 'caida';
+                    linea.reiniciosRequeridos = 0;
+                    registrarCorteDesconexion(
+                        linea,
+                        mensajeDesconexion,
+                        codigoError
+                    );
                     linea.estado = 'sesion_cerrada';
                     linea.ultimoError = 'La sesión de WhatsApp fue cerrada.';
                     linea.contactosEstado = new Set();
@@ -4498,12 +4585,35 @@ async function iniciarWhatsApp(lineaId) {
                         'sesion_cerrada'
                     );
                 } else if (CODIGOS_DESCONEXION_FATAL.has(codigoError)) {
+                    linea.etiqueta = 'caida';
+                    linea.reiniciosRequeridos = 0;
+                    registrarCorteDesconexion(
+                        linea,
+                        mensajeDesconexion,
+                        codigoError
+                    );
                     bloquearReconexionAutomatica(
                         linea,
                         `${mensajeDesconexion} La sesión requiere intervención manual.`,
                         codigoError
                     );
+                } else if (codigoError === DisconnectReason.connectionReplaced) {
+                    linea.etiqueta = 'caida';
+                    linea.reiniciosRequeridos = 0;
+                    linea.estado = 'desconectado';
+                    linea.ultimoError =
+                        `${mensajeDesconexion} Se comprobará si la sesión puede recuperarse; ` +
+                        'si el código se repite, revisá que no haya otra instancia usando esa misma línea.';
+                    guardarLineas();
+                    programarReconexionAutomatica(
+                        lineaId,
+                        linea.ultimoError,
+                        codigoError,
+                        5000
+                    );
                 } else {
+                    linea.etiqueta = 'caida';
+                    linea.reiniciosRequeridos = 0;
                     linea.estado = 'desconectado';
                     linea.ultimoError = mensajeDesconexion;
                     guardarLineas();
@@ -4545,12 +4655,13 @@ async function iniciarWhatsApp(lineaId) {
         linea.ultimaDesconexion = new Date().toISOString();
         linea.ultimoCodigoDesconexion = obtenerCodigoError(error);
         linea.ultimoError = error.message || 'No se pudo iniciar la línea.';
-        registrarCorteDesconexion(
-            linea,
-            linea.ultimoError,
-            linea.ultimoCodigoDesconexion
-        );
+        linea.reiniciosRequeridos = 0;
         if (CODIGOS_DESCONEXION_FATAL.has(linea.ultimoCodigoDesconexion)) {
+            registrarCorteDesconexion(
+                linea,
+                linea.ultimoError,
+                linea.ultimoCodigoDesconexion
+            );
             bloquearReconexionAutomatica(
                 linea,
                 `${linea.ultimoError} La sesión requiere intervención manual.`,
@@ -4580,6 +4691,71 @@ async function esperarIntervaloPublicacion(ms, esSecuencial = false) {
         segundos -= 1;
         progresoPublicacion.proximoGrupoSegundos = segundos;
         progresoPublicacion.proximaLineaSegundos = esSecuencial ? segundos : 0;
+    }
+}
+
+function obtenerLineasEnRecuperacion(idsLineas = []) {
+    return normalizarIdsLineas(idsLineas)
+        .map(id => lineas.get(id))
+        .filter(linea => {
+            if (
+                !linea ||
+                linea.eliminando ||
+                linea.reconexionBloqueada ||
+                linea.requiereRevisionEnvio
+            ) {
+                return false;
+            }
+
+            if (
+                linea.iniciando ||
+                linea.reconexionManualEnCurso ||
+                linea.estado === 'iniciando' ||
+                linea.estado === 'reconectando'
+            ) {
+                return true;
+            }
+
+            return linea.estado === 'conectado' &&
+                linea.conexionEnVerificacion === true;
+        });
+}
+
+async function esperarRecuperacionLineasPublicacion(idsLineas, contexto = '') {
+    const inicio = Date.now();
+
+    while (true) {
+        verificarCorteDesconexion();
+        const pendientes = obtenerLineasEnRecuperacion(idsLineas);
+        if (!pendientes.length) return;
+
+        const transcurrido = Date.now() - inicio;
+        if (transcurrido >= TIEMPO_MAXIMO_RECUPERACION_PUBLICACION_MS) {
+            const primera = pendientes[0];
+            const mensaje =
+                `La línea ${primera.nombre} no recuperó una conexión estable ` +
+                'dentro del tiempo de seguridad.';
+            registrarCorteDesconexion(
+                primera,
+                mensaje,
+                DisconnectReason.timedOut
+            );
+            verificarCorteDesconexion();
+        }
+
+        const primera = pendientes[0];
+        const adicionales = pendientes.length > 1
+            ? ` y ${pendientes.length - 1} más`
+            : '';
+        progresoPublicacion.estado = 'esperando_reconexion';
+        progresoPublicacion.proximoGrupoSegundos = 0;
+        progresoPublicacion.proximaLineaSegundos = 0;
+        progresoPublicacion.mensaje =
+            `Esperando que ${primera.nombre}${adicionales} recupere una conexión estable` +
+            `${contexto ? ` ${contexto}` : ''}.`;
+
+        await esperar(500);
+        verificarCorteDesconexion();
     }
 }
 
@@ -4692,8 +4868,12 @@ async function ejecutarPublicacion({
             idsLineas,
             registroHistorial.id
         );
-    const { correctas: lineasDisponibles, noDisponibles } =
-        obtenerLineasDisponibles(idsLineas);
+        await esperarRecuperacionLineasPublicacion(
+            idsLineas,
+            'antes de comenzar la publicación'
+        );
+        const { correctas: lineasDisponibles, noDisponibles } =
+            obtenerLineasDisponibles(idsLineas);
 
     const totalGrupos = Math.ceil(Math.max(total, 1) / tamanoGrupo);
     const fallosIniciales = noDisponibles.map(linea => ({
@@ -4770,12 +4950,17 @@ async function ejecutarPublicacion({
             prepararSincronizacionAudienciasPublicacion(lineasDisponibles);
         const controlPublicacionActual = controlSeguridadPublicacion;
         let fallosEvaluablesDesdeCorte = 0;
+        const reintentosPreparacionConexion = new Map();
 
         for (
             let inicio = 0;
             inicio < lineasDisponibles.length;
             inicio += tamanoGrupo
         ) {
+            await esperarRecuperacionLineasPublicacion(
+                idsLineas,
+                'antes de continuar'
+            );
             verificarCorteDesconexion();
             const grupo = lineasDisponibles.slice(inicio, inicio + tamanoGrupo);
 
@@ -4811,11 +4996,21 @@ async function ejecutarPublicacion({
                     total
                 };
 
-                const socketUsado = linea.socket;
+                let socketUsado = null;
+                let numeroUsado = null;
                 let fase = 'preparacion';
                 let contabilizarLinea = true;
 
                 try {
+                    await esperarRecuperacionLineasPublicacion(
+                        idsLineas,
+                        `antes de publicar en ${linea.nombre}`
+                    );
+                    progresoPublicacion.estado = 'publicando';
+                    progresoPublicacion.mensaje =
+                        `Publicando en ${linea.nombre}.`;
+                    socketUsado = linea.socket;
+
                     const evaluacionInicial = evaluarLineaParaPublicar(
                         linea,
                         socketUsado
@@ -4870,6 +5065,20 @@ async function ejecutarPublicacion({
                     progresoPublicacion.sincronizacionAudienciaSegundos = 0;
                     verificarCorteDesconexion();
 
+                    await esperarRecuperacionLineasPublicacion(
+                        idsLineas,
+                        `antes de enviar el estado de ${linea.nombre}`
+                    );
+                    progresoPublicacion.estado = 'publicando';
+                    progresoPublicacion.mensaje =
+                        `Enviando el estado en ${linea.nombre}.`;
+                    socketUsado = linea.socket;
+                    numeroUsado = linea.jid
+                        ? linea.jid.split('@')[0]
+                        : socketUsado?.user?.id
+                            ? jidNormalizedUser(socketUsado.user.id).split('@')[0]
+                            : null;
+
                     const evaluacionAntesDeEnviar = evaluarLineaParaPublicar(
                         linea,
                         socketUsado
@@ -4907,13 +5116,14 @@ async function ejecutarPublicacion({
                                 registroHistorial,
                                 linea,
                                 mensajeEstado,
-                                destinatariosEstado
+                                destinatariosEstado,
+                                numeroUsado
                             );
                         } catch (errorRegistro) {
                             throw crearErrorPublicacion(
                                 'REGISTRO_ESTADO_FALLIDO',
                                 'registro_local',
-                                `WhatsApp confirmó el estado en ${linea.nombre}, ` +
+                                `La operación devolvió un ID de estado para ${linea.nombre}, ` +
                                     `pero no se pudo guardar su ID: ${errorRegistro.message}`,
                                 {
                                     fasePublicacion: 'registro',
@@ -4938,7 +5148,7 @@ async function ejecutarPublicacion({
                                 codigoTimeout: 'TIEMPO_ENVIO_AGOTADO',
                                 tipoTimeout: 'envio_incierto',
                                 mensajeTimeout:
-                                    `WhatsApp no confirmó a tiempo el envío en ${linea.nombre}. ` +
+                                    `La operación no devolvió un ID a tiempo en ${linea.nombre}. ` +
                                     'No se continuará para evitar publicaciones duplicadas.',
                                 envioEnVuelo: true
                             }
@@ -4953,7 +5163,8 @@ async function ejecutarPublicacion({
                     progresoPublicacion.lineasCorrectas.push({
                         id: linea.id,
                         nombre: linea.nombre,
-                        numero: linea.jid ? linea.jid.split('@')[0] : null,
+                        numero: numeroUsado ||
+                            (linea.jid ? linea.jid.split('@')[0] : null),
                         destinatarios:
                             linea.ultimaSeleccionAudienciaEstado?.seleccionados ??
                             destinatariosEstado.length,
@@ -5004,6 +5215,44 @@ async function ejecutarPublicacion({
                         socketUsado,
                         faseFallo
                     );
+                    const reintentosPreparacion =
+                        reintentosPreparacionConexion.get(linea.id) || 0;
+                    const conexionEnRecuperacion =
+                        !linea.reconexionBloqueada &&
+                        !linea.requiereRevisionEnvio &&
+                        (
+                            linea.iniciando ||
+                            linea.estado === 'reconectando' ||
+                            (
+                                linea.estado === 'conectado' &&
+                                linea.socket &&
+                                linea.socket !== socketUsado
+                            )
+                        );
+                    const puedeRepetirPreparacion =
+                        !['envio', 'registro'].includes(faseFallo) &&
+                        conexionEnRecuperacion &&
+                        reintentosPreparacion <
+                            MAXIMOS_REINTENTOS_PREPARACION_CONEXION;
+
+                    if (puedeRepetirPreparacion) {
+                        reintentosPreparacionConexion.set(
+                            linea.id,
+                            reintentosPreparacion + 1
+                        );
+                        contabilizarLinea = false;
+                        indiceEnGrupo -= 1;
+                        progresoPublicacion.estado = 'esperando_reconexion';
+                        progresoPublicacion.mensaje =
+                            `La conexión de ${linea.nombre} cambió durante la preparación. ` +
+                            'Se repetirá la selección de audiencia cuando quede estable.';
+                        await esperarRecuperacionLineasPublicacion(
+                            idsLineas,
+                            `antes de reintentar ${linea.nombre}`
+                        );
+                        continue;
+                    }
+
                     const fallo = {
                         id: linea.id,
                         nombre: linea.nombre,
@@ -5286,7 +5535,7 @@ async function ejecutarPublicacion({
         progresoPublicacion.mensaje =
             error.codigo === 'DETENIDA_ALTO_TOTAL'
                 ? `Alto total aplicado: ${progresoPublicacion.correctas} ` +
-                    `estado(s) confirmado(s) conservaron su ID y ` +
+                    `envío(s) con ID guardado conservaron su registro y ` +
                     `${progresoPublicacion.noProcesadas} línea(s) no se iniciaron.`
                 : error.message;
         activarProteccionMiddlewarePorError(error);
@@ -5850,6 +6099,7 @@ app.post('/lineas', (req, res) => {
         temporizadorEstabilidadConexion: null,
         temporizadorAudiencia: null,
         generacionConexion: 0,
+        reiniciosRequeridos: 0,
         reconexionManualEnCurso: false,
         resincronizandoAudiencia: false,
         intentosResincronizacionAudiencia: 0,
