@@ -17,9 +17,9 @@ const CLIENT_DATA_LINEA = 'autostatues_line';
 const CLIENT_DATA_USUARIO = 'autostatues_user';
 const ESPERA_RESULTADO_INCIERTO_MS = 10 * 60 * 1000;
 const PALABRAS_CLAVE_USUARIO_PREDETERMINADAS = ['Usuario:'];
-const MAXIMO_PALABRAS_CLAVE_USUARIO = 30;
+const MAXIMO_PALABRAS_CLAVE_USUARIO = 70;
 const MAXIMO_CARACTERES_PALABRA_CLAVE = 100;
-const MAXIMO_CARACTERES_PALABRAS_CLAVE = 3000;
+const MAXIMO_CARACTERES_PALABRAS_CLAVE = 7000;
 
 class ErrorAgendamiento extends Error {
     constructor(codigo, mensaje, causa, httpStatus) {
@@ -144,8 +144,9 @@ function escaparExpresionRegular(valor) {
 }
 
 /**
- * Busca frases literales configuradas por el usuario y toma el primer token
- * válido que aparece inmediatamente después en la misma línea.
+ * Busca frases literales configuradas por el usuario. Primero intenta tomar
+ * el token válido inmediatamente posterior y, si no existe, el token válido
+ * más cercano que aparece antes de la frase en la misma línea.
  */
 function parsearUsuarioPorPalabrasClave(texto, palabrasClave) {
     const normalizado = normalizarTextoPlantilla(texto);
@@ -160,12 +161,21 @@ function parsearUsuarioPorPalabrasClave(texto, palabrasClave) {
             const coincidencia = expresion.exec(linea);
             if (!coincidencia) continue;
 
-            const resto = linea
+            const textoPosterior = linea
                 .slice(coincidencia.index + coincidencia[0].length)
                 .replace(/^[\s:;=\-–—]+/u, '');
-            const token = resto.match(/^[\p{L}\p{N}_.-]{1,80}(?=$|\s)/u)?.[0];
-            const usuario = normalizarUsuario(token);
-            if (usuario) return { usuario };
+            const tokenPosterior = textoPosterior.match(
+                /^[\p{L}\p{N}_.-]{1,80}(?=$|\s)/u
+            )?.[0];
+            const usuarioPosterior = normalizarUsuario(tokenPosterior);
+            if (usuarioPosterior) return { usuario: usuarioPosterior };
+
+            const textoAnterior = linea.slice(0, coincidencia.index);
+            const tokenAnterior = textoAnterior.match(
+                /([\p{L}\p{N}_.-]{1,80})(?:[^\p{L}\p{N}_.-]*)$/u
+            )?.[1];
+            const usuarioAnterior = normalizarUsuario(tokenAnterior);
+            if (usuarioAnterior) return { usuario: usuarioAnterior };
         }
     }
 

@@ -7150,7 +7150,7 @@
                                 </span>
                                 <span class="agenda-history-state-copy">
                                     <strong id="agenda-keywords-title">Búsqueda en chats recientes</strong>
-                                    <span id="agenda-keywords-detail">Configurá las frases que aparecen justo antes del usuario.</span>
+                                    <span id="agenda-keywords-detail">Configurá frases que aparezcan inmediatamente antes o después del usuario.</span>
                                 </span>
                                 <button type="button" id="btn-agenda-keywords" class="secondary-button agenda-history-action">
                                     <svg class="icon"><use href="#i-settings"></use></svg>
@@ -7220,7 +7220,7 @@
 
                             <div class="agenda-security-note">
                                 <svg class="icon"><use href="#i-info"></use></svg>
-                                <span>Se extrae únicamente el usuario ubicado después de una frase configurada. Las claves y el contenido completo del chat nunca se guardan en disco.</span>
+                                <span>Se extrae únicamente el usuario ubicado junto a una frase configurada, antes o después de ella. Las claves y el contenido completo del chat nunca se guardan en disco.</span>
                             </div>
 
                             <div class="agenda-stats">
@@ -7798,13 +7798,14 @@
             <div class="modal-body">
                 <p class="agenda-keywords-intro">
                     Escribí una frase por línea. AutoStatues buscará cada frase
-                    literalmente y tomará como usuario el primer texto válido
-                    que aparezca justo después, dentro de la misma línea.
+                    literalmente y tomará el usuario válido que aparezca justo
+                    después o justo antes, dentro de la misma línea.
                 </p>
 
                 <div class="agenda-keywords-example">
                     <span>Ejemplo: si configurás <code>👤 Usuario:</code></span>
                     <span>En <code>👤 Usuario: cliente_77</code> se detectará <code>cliente_77</code>.</span>
+                    <span>También podés configurar <code>todo listo</code> para detectar <code>cliente_77</code> en <code>cliente_77 todo listo ✅</code>.</span>
                 </div>
 
                 <div class="field" style="margin-top:16px;">
@@ -7815,13 +7816,13 @@
                     <textarea
                         id="agenda-palabras-texto"
                         class="textarea agenda-keywords-editor"
-                        maxlength="3000"
+                        maxlength="7000"
                         spellcheck="false"
                         placeholder="Usuario:&#10;Tu usuario es:&#10;Cuenta creada:"
                     ></textarea>
                     <div class="agenda-keywords-meta">
                         <span>Usá frases específicas para evitar coincidencias incorrectas.</span>
-                        <strong id="agenda-palabras-contador">0 de 30</strong>
+                        <strong id="agenda-palabras-contador">0 de 70</strong>
                     </div>
                 </div>
 
@@ -10215,7 +10216,7 @@
                 `${cantidadPalabras} frase${cantidadPalabras === 1 ? '' : 's'} configurada${cantidadPalabras === 1 ? '' : 's'}`;
             document.getElementById('agenda-keywords-detail').textContent =
                 agendaLineaId
-                    ? 'Abrí la configuración para guardar cambios y revisar los mensajes recientes disponibles de esta línea.'
+                    ? 'Abrí la configuración para buscar usuarios antes o después de cada frase en los mensajes recientes.'
                     : 'Las frases se aplicarán a todas las líneas de esta instalación.';
 
             const proceso = agendaEstado.proceso || {};
@@ -10419,7 +10420,7 @@
             const texto = document.getElementById('agenda-palabras-texto').value;
             const cantidad = frasesAgendaDesdeTexto(texto).length;
             document.getElementById('agenda-palabras-contador').textContent =
-                `${cantidad} de 30`;
+                `${cantidad} de 70`;
         }
 
         function abrirPalabrasClaveAgendamiento() {

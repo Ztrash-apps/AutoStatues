@@ -138,6 +138,13 @@ test('las palabras clave son literales, configurables y se conservan sin guardar
         ),
         { usuario: 'jugador_88' }
     );
+    assert.deepEqual(
+        parsearUsuarioPorPalabrasClave(
+            '(jugador_89) todo listo ✅',
+            ['todo listo']
+        ),
+        { usuario: 'jugador_89' }
+    );
     assert.equal(
         parsearUsuarioPorPalabrasClave(
             'Cuenta .*: no_debe_coincidir',
@@ -147,15 +154,35 @@ test('las palabras clave son literales, configurables y se conservan sin guardar
         'las frases configuradas nunca se interpretan como regex'
     );
 
+    const setentaFrases = Array.from(
+        { length: 70 },
+        (_, indice) => `Comando ${indice + 1}: ${'x'.repeat(45)}`
+    );
+    assert.equal(
+        normalizarPalabrasClaveUsuario(
+            setentaFrases,
+            { estricto: true }
+        ).length,
+        70
+    );
+    assert.throws(
+        () => normalizarPalabrasClaveUsuario(
+            [...setentaFrases, `Comando 71: ${'x'.repeat(45)}`],
+            { estricto: true }
+        ),
+        /hasta 70 frases/u
+    );
+
     const rutaDatos = crearTemporal(t);
     const servicio = crearServicioAgendamiento({ rutaDatos });
     const configuracion = servicio.configurarPalabrasClaveUsuario([
         'Alias del jugador:',
-        'Usuario:'
+        'Usuario:',
+        'carga confirmada'
     ]);
     assert.deepEqual(
         configuracion.palabrasClave,
-        ['Alias del jugador:', 'Usuario:']
+        ['Alias del jugador:', 'Usuario:', 'carga confirmada']
     );
 
     await servicio.registrarMensajes(
@@ -169,6 +196,14 @@ test('las palabras clave son literales, configurables y se conservan sin guardar
                 conversation:
                     'Bienvenido\nAlias del jugador: cliente_31\nClave: no-guardar'
             }
+        }, {
+            key: {
+                fromMe: true,
+                remoteJid: '595981230032@s.whatsapp.net'
+            },
+            message: {
+                conversation: '(cliente_32) carga confirmada 🔥'
+            }
         }]
     );
 
@@ -176,7 +211,10 @@ test('las palabras clave son literales, configurables y se conservan sin guardar
         id: 'linea-palabras',
         nombre: 'Línea 31'
     });
-    assert.equal(vista.candidatos[0].usuario, 'cliente_31');
+    assert.deepEqual(
+        vista.candidatos.map(item => item.usuario),
+        ['cliente_31', 'cliente_32']
+    );
     servicio.cerrar();
 
     const persistido = fs.readFileSync(rutaDatos, 'utf8');
@@ -187,7 +225,7 @@ test('las palabras clave son literales, configurables y se conservan sin guardar
     const recargado = crearServicioAgendamiento({ rutaDatos });
     assert.deepEqual(
         recargado.obtenerConfiguracionBusqueda().palabrasClave,
-        ['Alias del jugador:', 'Usuario:']
+        ['Alias del jugador:', 'Usuario:', 'carga confirmada']
     );
     recargado.cerrar();
 });
