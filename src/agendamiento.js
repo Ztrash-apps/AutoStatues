@@ -6,7 +6,7 @@ const http = require('http');
 const path = require('path');
 const { EventEmitter } = require('events');
 
-const VERSION_DATOS = 2;
+const VERSION_DATOS = 3;
 const MARCADOR_MUTUO = '🟣';
 const GOOGLE_CONTACTS_SCOPE = 'https://www.googleapis.com/auth/contacts';
 const GOOGLE_SCOPES = [GOOGLE_CONTACTS_SCOPE, 'openid', 'email'];
@@ -20,6 +20,35 @@ const PALABRAS_CLAVE_USUARIO_PREDETERMINADAS = ['Usuario:'];
 const MAXIMO_PALABRAS_CLAVE_USUARIO = 70;
 const MAXIMO_CARACTERES_PALABRA_CLAVE = 100;
 const MAXIMO_CARACTERES_PALABRAS_CLAVE = 7000;
+const PALABRAS_COMUNES_NO_USUARIO = new Set([
+    'a', 'aca', 'acreditada', 'acreditado', 'activada', 'activado', 'activo',
+    'activa', 'ahora', 'al', 'algo', 'alias', 'aqui', 'asi',
+    'bien', 'buen', 'buena', 'buenas', 'bueno', 'buenos', 'carga',
+    'cargada', 'cargado', 'cargamos', 'cargar', 'clave', 'cliente',
+    'claro', 'codigo', 'como', 'completada', 'completado', 'con',
+    'confirmada',
+    'confirmado', 'confirmamos', 'correcta', 'correctamente', 'correcto',
+    'correo', 'creada', 'creado', 'cual', 'cuando', 'cuenta', 'dale',
+    'datos', 'de', 'del', 'depositada',
+    'depositado', 'deposito', 'disponible', 'el', 'ella', 'en',
+    'enlace', 'enviada', 'enviado', 'es', 'esta', 'estas', 'este', 'esto',
+    'exito', 'exitosa', 'exitoso', 'favor',
+    'final', 'finalizada', 'finalizado', 'genial', 'gracias', 'hecha', 'hecho',
+    'hola', 'hoy', 'ingresada', 'ingresado', 'ingreso', 'la', 'las', 'le',
+    'link', 'lista', 'listas', 'listo', 'listos', 'lo', 'los', 'mail',
+    'manana', 'mas', 'mensaje', 'monto', 'movimiento', 'movimientos', 'muy',
+    'nada', 'ni', 'no', 'nombre', 'nos', 'nueva', 'nuevo', 'numero', 'o',
+    'ok', 'okay', 'okey', 'operacion', 'otra', 'otras', 'otro', 'otros',
+    'para', 'password', 'pero', 'perfecta', 'perfecto', 'pin', 'por',
+    'porque',
+    'pendiente', 'procesada', 'procesado', 'realizada', 'realizado', 'recarga',
+    'recargada', 'recargado', 'recibida', 'recibido', 'registrada',
+    'registrado', 'saldo', 'se',
+    'si', 'sin', 'solicitud', 'su', 'sus', 'sistema', 'te', 'telefono',
+    'todo', 'toda', 'todos', 'todas', 'transaccion', 'tu', 'tus', 'un',
+    'una', 'unas', 'unos', 'user', 'usuario', 'y', 'ya', 'yo', 'que',
+    'donde', 'contrasena'
+]);
 
 class ErrorAgendamiento extends Error {
     constructor(codigo, mensaje, causa, httpStatus) {
@@ -52,11 +81,82 @@ function normalizarTextoPlantilla(valor) {
         .trim();
 }
 
+function normalizarPalabraComparable(valor) {
+    return String(valor || '')
+        .normalize('NFD')
+        .replace(/\p{M}/gu, '')
+        .toLocaleLowerCase('es');
+}
+
 function normalizarUsuario(valor) {
     const usuario = textoSeguro(valor, 80).replace(/\s+/g, ' ');
     if (!usuario || usuario.includes('\n') || /\s/u.test(usuario)) return null;
-    if (!/^[\p{L}\p{N}_.-]{1,80}$/u.test(usuario)) return null;
+    if (usuario.length < 3) return null;
+    if (!/^[\p{L}\p{N}][\p{L}\p{N}_.-]{1,78}[\p{L}\p{N}]$/u.test(usuario)) {
+        return null;
+    }
+    // Un usuario puede incluir números, pero nunca puede ser solamente un
+    // número. Dos letras como mínimo descartan teléfonos y códigos del tipo
+    // "L25" sin impedir nombres habituales como "rositaflor77".
+    if ((usuario.match(/\p{L}/gu) || []).length < 2) return null;
+
+    const comparable = normalizarPalabraComparable(usuario);
+    if (PALABRAS_COMUNES_NO_USUARIO.has(comparable)) return null;
+    if (/^(?:carga|clave|codigo|monto|password|recarga|saldo)\d+$/u.test(comparable)) {
+        return null;
+    }
     return usuario;
+}
+
+// Las detecciones automáticas usan un formato más estricto que los datos
+// históricos ya guardados. Así no se confunden dominios, montos, referencias
+// ni palabras operativas con el usuario real del cliente.
+function normalizarUsuarioAutomatico(valor) {
+    const usuario = textoSeguro(valor, 80);
+    if (usuario.length < 4 || usuario.length > 32) return null;
+    if (!/^\p{L}[\p{L}\p{N}_]{2,30}[\p{L}\p{N}]$/u.test(usuario)) {
+        return null;
+    }
+    if (usuario.includes('__')) return null;
+    if ((usuario.match(/\p{L}/gu) || []).length < 3) return null;
+
+    const comparable = normalizarPalabraComparable(usuario);
+    if (PALABRAS_COMUNES_NO_USUARIO.has(comparable)) return null;
+    if (
+        /^(?:carga|clave|codigo|monto|saldo|pedido|ref|recarga|deposito|retiro|transaccion|ticket|pin|token|todo|listo|final|recibido|pendiente|usuario|user|alias|nombre|perfecto|perfecta|cuenta|correo|mensaje|telefono)[\p{L}\p{N}_]*$/u
+            .test(comparable)
+        || /^cliente\d+$/u.test(comparable)
+        || /^id_?\d+$/u.test(comparable)
+        || /^(?:gs|pyg|usd|ars)?\d+(?:mil|k)$/u.test(comparable)
+    ) {
+        return null;
+    }
+    return usuario;
+}
+
+function normalizarUsuarioPersistido(registro) {
+    if (!registro?.usuario) return null;
+    const fuente = ['regla', 'ia', 'ia_revision', 'manual'].includes(
+        registro.usuarioFuente
+    ) ? registro.usuarioFuente : 'regla';
+    const esDecisionHumana = fuente === 'manual' ||
+        registro.usuarioBloqueadoManual === true;
+    return esDecisionHumana
+        ? normalizarUsuario(registro.usuario)
+        : normalizarUsuarioAutomatico(registro.usuario);
+}
+
+function extraerUsuarioAntesDeFrase(textoAnterior) {
+    const texto = String(textoAnterior || '');
+    const coincidencia = texto.match(
+        /([\p{L}\p{N}_.-]{1,80})(?:[^\p{L}\p{N}_.-]*)$/u
+    );
+    const token = coincidencia?.[1];
+    if (!token) return null;
+    const inicioToken = Number(coincidencia.index) + coincidencia[0].indexOf(token);
+    const delimitador = inicioToken > 0 ? texto[inicioToken - 1] : '';
+    if (delimitador && !/[\s([{'"«]/u.test(delimitador)) return null;
+    return normalizarUsuarioAutomatico(token);
 }
 
 function normalizarPalabraClaveUsuario(valor) {
@@ -67,6 +167,16 @@ function normalizarPalabraClaveUsuario(valor) {
         .normalize('NFC')
         .replace(/\s+/gu, ' ')
         .trim();
+}
+
+function esPalabraClaveDemasiadoGenerica(palabra) {
+    if (/[:=]$/u.test(palabra)) return false;
+    const tokens = palabra
+        .normalize('NFD')
+        .replace(/\p{M}/gu, '')
+        .toLocaleLowerCase('es')
+        .match(/[\p{L}\p{N}]+/gu) || [];
+    return tokens.length === 1 && PALABRAS_COMUNES_NO_USUARIO.has(tokens[0]);
 }
 
 function normalizarPalabrasClaveUsuario(entrada, { estricto = false } = {}) {
@@ -100,6 +210,15 @@ function normalizarPalabrasClaveUsuario(entrada, { estricto = false } = {}) {
                 throw new ErrorAgendamiento(
                     'PALABRA_CLAVE_INVALIDA',
                     `Cada frase debe tener entre 2 y ${MAXIMO_CARACTERES_PALABRA_CLAVE} caracteres.`
+                );
+            }
+            continue;
+        }
+        if (esPalabraClaveDemasiadoGenerica(palabra)) {
+            if (estricto) {
+                throw new ErrorAgendamiento(
+                    'PALABRA_CLAVE_GENERICA',
+                    `La frase "${palabra}" es demasiado genérica. Usá una etiqueta con : o una confirmación más completa.`
                 );
             }
             continue;
@@ -143,39 +262,62 @@ function escaparExpresionRegular(valor) {
     return String(valor || '').replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }
 
+function crearExpresionBusquedaFrase(frase) {
+    const literal = escaparExpresionRegular(frase);
+    const inicio = /^[\p{L}\p{N}]/u.test(frase)
+        ? '(?<![\\p{L}\\p{N}_.-])'
+        : '';
+    const final = /[\p{L}\p{N}]$/u.test(frase)
+        ? '(?![\\p{L}\\p{N}_.-])'
+        : '';
+    return new RegExp(`${inicio}${literal}${final}`, 'giu');
+}
+
 /**
- * Busca frases literales configuradas por el usuario. Primero intenta tomar
- * el token válido inmediatamente posterior y, si no existe, el token válido
- * más cercano que aparece antes de la frase en la misma línea.
+ * Busca frases literales configuradas por el usuario. Una etiqueta que acaba
+ * en ':' o '=' toma exclusivamente el token posterior. Una confirmación toma
+ * exclusivamente el token anterior y debe ser una frase de al menos dos
+ * palabras; una palabra genérica aislada nunca autoaprueba un contacto.
  */
 function parsearUsuarioPorPalabrasClave(texto, palabrasClave) {
     const normalizado = normalizarTextoPlantilla(texto);
     if (!normalizado) return null;
 
-    const frases = normalizarPalabrasClaveUsuario(palabrasClave);
+    const frases = normalizarPalabrasClaveUsuario(palabrasClave)
+        .sort((a, b) => {
+            // Una etiqueta explícita (por ejemplo, "Usuario:") es más segura
+            // que una confirmación genérica. Entre frases del mismo tipo se
+            // evalúa primero la más completa: "todo listo" antes que "listo".
+            const etiquetaA = /[:=]\s*$/u.test(a) ? 1 : 0;
+            const etiquetaB = /[:=]\s*$/u.test(b) ? 1 : 0;
+            return etiquetaB - etiquetaA || b.length - a.length;
+        });
     const lineas = normalizado.split('\n');
 
     for (const frase of frases) {
-        const expresion = new RegExp(escaparExpresionRegular(frase), 'iu');
+        const esEtiquetaExplicita = /[:=]\s*$/u.test(frase);
+        if (!esEtiquetaExplicita && !/\s/u.test(frase)) continue;
+        const expresion = crearExpresionBusquedaFrase(frase);
         for (const linea of lineas) {
-            const coincidencia = expresion.exec(linea);
-            if (!coincidencia) continue;
+            for (const coincidencia of linea.matchAll(expresion)) {
+                if (esEtiquetaExplicita) {
+                    const textoPosterior = linea
+                        .slice(coincidencia.index + coincidencia[0].length)
+                        .replace(/^[\s:;=\-–—]+/u, '');
+                    const tokenPosterior = textoPosterior.match(
+                        /^[^\s,;!?()[\]{}]{1,80}/u
+                    )?.[0];
+                    const usuarioPosterior = normalizarUsuarioAutomatico(
+                        tokenPosterior
+                    );
+                    if (usuarioPosterior) return { usuario: usuarioPosterior };
+                    continue;
+                }
 
-            const textoPosterior = linea
-                .slice(coincidencia.index + coincidencia[0].length)
-                .replace(/^[\s:;=\-–—]+/u, '');
-            const tokenPosterior = textoPosterior.match(
-                /^[\p{L}\p{N}_.-]{1,80}(?=$|\s)/u
-            )?.[0];
-            const usuarioPosterior = normalizarUsuario(tokenPosterior);
-            if (usuarioPosterior) return { usuario: usuarioPosterior };
-
-            const textoAnterior = linea.slice(0, coincidencia.index);
-            const tokenAnterior = textoAnterior.match(
-                /([\p{L}\p{N}_.-]{1,80})(?:[^\p{L}\p{N}_.-]*)$/u
-            )?.[1];
-            const usuarioAnterior = normalizarUsuario(tokenAnterior);
-            if (usuarioAnterior) return { usuario: usuarioAnterior };
+                const textoAnterior = linea.slice(0, coincidencia.index);
+                const usuarioAnterior = extraerUsuarioAntesDeFrase(textoAnterior);
+                if (usuarioAnterior) return { usuario: usuarioAnterior };
+            }
         }
     }
 
@@ -199,7 +341,7 @@ function parsearPlantillaGreenvip(texto) {
 
     const coincidenciaUsuario = lineas[2].match(/^👤\s*Usuario:\s*(.+)$/u);
     if (!coincidenciaUsuario) return null;
-    const usuario = normalizarUsuario(coincidenciaUsuario[1]);
+    const usuario = normalizarUsuarioAutomatico(coincidenciaUsuario[1]);
     if (!usuario) return null;
 
     if (!/^🔐\s*Clave:\s*123456$/u.test(lineas[3])) return null;
@@ -340,6 +482,7 @@ function esErrorGoogleDeCorte(error) {
 }
 
 function candidatoEstaSincronizado(candidato, cuentaId) {
+    if (!normalizarUsuario(candidato?.usuario)) return false;
     const exito = ['creado', 'actualizado', 'sin_cambios'].includes(
         candidato?.ultimoResultado?.tipo
     );
@@ -479,6 +622,7 @@ function sanitizarEstadoLeido(leido) {
                 prefijo: obtenerPrefijoLinea(nombre),
                 candidatos: {},
                 pendientesJid: {},
+                revisionesIA: {},
                 secuenciaMensajes: Number.isSafeInteger(lineaLeida.secuenciaMensajes)
                     && lineaLeida.secuenciaMensajes >= 0
                     ? lineaLeida.secuenciaMensajes
@@ -489,44 +633,63 @@ function sanitizarEstadoLeido(leido) {
                 if (!candidatoLeido || typeof candidatoLeido !== 'object') continue;
                 const telefono = normalizarTelefono(candidatoLeido.telefono, '');
                 if (!telefono) continue;
-                const usuario = candidatoLeido.usuario
-                    ? normalizarUsuario(candidatoLeido.usuario)
-                    : null;
+                const usuario = normalizarUsuarioPersistido(candidatoLeido);
+                const senales = {
+                    vioEstado: textoSeguro(candidatoLeido.senales?.vioEstado, 40) || null,
+                    publicoEstado: textoSeguro(
+                        candidatoLeido.senales?.publicoEstado,
+                        40
+                    ) || null
+                };
+                const mutuo = Boolean(candidatoLeido.mutuo);
+                // Los falsos positivos antiguos que no tienen ninguna señal
+                // útil desaparecen al recargar. Si sí hay una señal mutua, se
+                // conserva el teléfono pero queda pendiente de un usuario real.
+                if (!usuario && !mutuo && !senales.vioEstado && !senales.publicoEstado) {
+                    continue;
+                }
                 const ultimo = candidatoLeido.ultimoResultado;
                 linea.candidatos[telefono] = {
                     telefono,
                     usuario,
-                    usuarioMensajeTimestamp: normalizarTimestampMensaje(
-                        candidatoLeido.usuarioMensajeTimestamp
-                    ),
-                    usuarioMensajeId: textoSeguro(
-                        candidatoLeido.usuarioMensajeId,
-                        240
-                    ) || null,
-                    usuarioMensajeOrigen: candidatoLeido.usuarioMensajeOrigen === 'historial'
-                        ? 'historial'
-                        : (usuario ? 'vivo' : null),
-                    usuarioMensajeEvento: Number.isSafeInteger(
+                    usuarioFuente: usuario
+                        ? ['regla', 'ia', 'ia_revision', 'manual'].includes(
+                            candidatoLeido.usuarioFuente
+                        ) ? candidatoLeido.usuarioFuente : 'regla'
+                        : null,
+                    usuarioConfianza: usuario
+                        ? Math.min(100, Math.max(0,
+                            Number(candidatoLeido.usuarioConfianza) || 100
+                        ))
+                        : null,
+                    usuarioBloqueadoManual: usuario
+                        ? candidatoLeido.usuarioBloqueadoManual === true
+                        : false,
+                    usuarioMensajeTimestamp: usuario
+                        ? normalizarTimestampMensaje(candidatoLeido.usuarioMensajeTimestamp)
+                        : null,
+                    usuarioMensajeId: usuario
+                        ? textoSeguro(candidatoLeido.usuarioMensajeId, 240) || null
+                        : null,
+                    usuarioMensajeOrigen: usuario
+                        ? (candidatoLeido.usuarioMensajeOrigen === 'historial'
+                            ? 'historial'
+                            : 'vivo')
+                        : null,
+                    usuarioMensajeEvento: usuario && Number.isSafeInteger(
                         candidatoLeido.usuarioMensajeEvento
                     ) ? candidatoLeido.usuarioMensajeEvento : 0,
-                    usuarioMensajePosicion: Number.isSafeInteger(
+                    usuarioMensajePosicion: usuario && Number.isSafeInteger(
                         candidatoLeido.usuarioMensajePosicion
                     ) ? candidatoLeido.usuarioMensajePosicion : 0,
-                    mutuo: Boolean(candidatoLeido.mutuo),
-                    senales: {
-                        vioEstado: textoSeguro(candidatoLeido.senales?.vioEstado, 40) || null,
-                        publicoEstado: textoSeguro(
-                            candidatoLeido.senales?.publicoEstado,
-                            40
-                        ) || null
-                    },
+                    mutuo,
+                    senales,
                     detectadoEn: textoSeguro(candidatoLeido.detectadoEn, 40) || null,
-                    usuarioDetectadoEn: textoSeguro(
-                        candidatoLeido.usuarioDetectadoEn,
-                        40
-                    ) || null,
+                    usuarioDetectadoEn: usuario
+                        ? textoSeguro(candidatoLeido.usuarioDetectadoEn, 40) || null
+                        : null,
                     actualizadoEn: textoSeguro(candidatoLeido.actualizadoEn, 40) || null,
-                    ultimoResultado: ultimo && typeof ultimo === 'object'
+                    ultimoResultado: usuario && ultimo && typeof ultimo === 'object'
                         ? {
                             tipo: textoSeguro(ultimo.tipo, 40),
                             codigo: textoSeguro(ultimo.codigo, 80) || undefined,
@@ -545,40 +708,119 @@ function sanitizarEstadoLeido(leido) {
                 if (!pendienteLeido || typeof pendienteLeido !== 'object') continue;
                 const jid = textoSeguro(pendienteLeido.jid || jidClave, 240);
                 if (!esJidLid(jid)) continue;
-                const usuarioPendiente = pendienteLeido.usuario
-                    ? normalizarUsuario(pendienteLeido.usuario)
-                    : null;
+                const usuarioPendiente = normalizarUsuarioPersistido(
+                    pendienteLeido
+                );
+                const senalesPendiente = {
+                    vioEstado: textoSeguro(
+                        pendienteLeido.senales?.vioEstado,
+                        40
+                    ) || null,
+                    publicoEstado: textoSeguro(
+                        pendienteLeido.senales?.publicoEstado,
+                        40
+                    ) || null
+                };
+                if (
+                    !usuarioPendiente
+                    && !senalesPendiente.vioEstado
+                    && !senalesPendiente.publicoEstado
+                ) {
+                    continue;
+                }
                 linea.pendientesJid[jid] = {
                     jid,
                     usuario: usuarioPendiente,
-                    usuarioMensajeTimestamp: normalizarTimestampMensaje(
-                        pendienteLeido.usuarioMensajeTimestamp
-                    ),
-                    usuarioMensajeId: textoSeguro(
-                        pendienteLeido.usuarioMensajeId,
-                        240
-                    ) || null,
-                    usuarioMensajeOrigen: pendienteLeido.usuarioMensajeOrigen === 'historial'
-                        ? 'historial'
-                        : (usuarioPendiente ? 'vivo' : null),
-                    usuarioMensajeEvento: Number.isSafeInteger(
+                    usuarioFuente: usuarioPendiente
+                        ? ['regla', 'ia', 'ia_revision', 'manual'].includes(
+                            pendienteLeido.usuarioFuente
+                        ) ? pendienteLeido.usuarioFuente : 'regla'
+                        : null,
+                    usuarioConfianza: usuarioPendiente
+                        ? Math.min(100, Math.max(0,
+                            Number(pendienteLeido.usuarioConfianza) || 100
+                        ))
+                        : null,
+                    usuarioBloqueadoManual: usuarioPendiente
+                        ? pendienteLeido.usuarioBloqueadoManual === true
+                        : false,
+                    usuarioMensajeTimestamp: usuarioPendiente
+                        ? normalizarTimestampMensaje(pendienteLeido.usuarioMensajeTimestamp)
+                        : null,
+                    usuarioMensajeId: usuarioPendiente
+                        ? textoSeguro(pendienteLeido.usuarioMensajeId, 240) || null
+                        : null,
+                    usuarioMensajeOrigen: usuarioPendiente
+                        ? (pendienteLeido.usuarioMensajeOrigen === 'historial'
+                            ? 'historial'
+                            : 'vivo')
+                        : null,
+                    usuarioMensajeEvento: usuarioPendiente && Number.isSafeInteger(
                         pendienteLeido.usuarioMensajeEvento
                     ) ? pendienteLeido.usuarioMensajeEvento : 0,
-                    usuarioMensajePosicion: Number.isSafeInteger(
+                    usuarioMensajePosicion: usuarioPendiente && Number.isSafeInteger(
                         pendienteLeido.usuarioMensajePosicion
                     ) ? pendienteLeido.usuarioMensajePosicion : 0,
-                    senales: {
-                        vioEstado: textoSeguro(
-                            pendienteLeido.senales?.vioEstado,
-                            40
-                        ) || null,
-                        publicoEstado: textoSeguro(
-                            pendienteLeido.senales?.publicoEstado,
-                            40
-                        ) || null
-                    },
+                    senales: senalesPendiente,
                     detectadoEn: textoSeguro(pendienteLeido.detectadoEn, 40) || null,
                     actualizadoEn: textoSeguro(pendienteLeido.actualizadoEn, 40) || null
+                };
+            }
+            for (const revisionLeida of Object.values(lineaLeida.revisionesIA || {})) {
+                if (!revisionLeida || typeof revisionLeida !== 'object') continue;
+                const idRevision = textoSeguro(revisionLeida.id, 80);
+                const usuarioRevision = normalizarUsuarioAutomatico(
+                    revisionLeida.usuario
+                );
+                const estadoRevision = revisionLeida.estado === 'rechazada'
+                    ? 'rechazada'
+                    : 'pendiente';
+                const telefonoRevision = normalizarTelefono(
+                    revisionLeida.telefono,
+                    ''
+                );
+                const jidRevision = textoSeguro(revisionLeida.jid, 240) || null;
+                if (
+                    !idRevision || !usuarioRevision ||
+                    (!telefonoRevision && !esJidLid(jidRevision))
+                ) continue;
+                linea.revisionesIA[idRevision] = {
+                    id: idRevision,
+                    telefono: telefonoRevision,
+                    jid: telefonoRevision ? null : jidRevision,
+                    usuario: usuarioRevision,
+                    confianza: Math.min(100, Math.max(0,
+                        Number(revisionLeida.confianza) || 0
+                    )),
+                    tipoEvidencia: textoSeguro(
+                        revisionLeida.tipoEvidencia,
+                        60
+                    ) || 'ia',
+                    evidencias: (Array.isArray(revisionLeida.evidencias)
+                        ? revisionLeida.evidencias
+                        : [])
+                        .map(valor => {
+                            if (typeof valor === 'string') {
+                                const id = textoSeguro(valor, 80);
+                                return id ? {
+                                    id,
+                                    timestampMs: 0
+                                } : null;
+                            }
+                            const id = textoSeguro(valor?.id, 80);
+                            if (!id) return null;
+                            return {
+                                id,
+                                timestampMs: normalizarTimestampMensaje(
+                                    valor?.timestampMs
+                                ) || 0
+                            };
+                        })
+                        .filter(Boolean)
+                        .slice(0, 8),
+                    estado: estadoRevision,
+                    detectadaEn: textoSeguro(revisionLeida.detectadaEn, 40) || null,
+                    actualizadaEn: textoSeguro(revisionLeida.actualizadaEn, 40) || null
                 };
             }
             limpio.lineas[id] = linea;
@@ -600,6 +842,26 @@ function leerJsonSeguro(ruta) {
         }
     }
     return estadoInicial();
+}
+
+function contieneCampoFragmento(valor) {
+    const pendientes = [valor];
+    while (pendientes.length) {
+        const actual = pendientes.pop();
+        if (!actual || typeof actual !== 'object') continue;
+        if (Object.prototype.hasOwnProperty.call(actual, 'fragmento')) return true;
+        pendientes.push(...Object.values(actual));
+    }
+    return false;
+}
+
+function archivoContieneFragmentoHeredado(ruta) {
+    if (!fs.existsSync(ruta)) return false;
+    try {
+        return contieneCampoFragmento(JSON.parse(fs.readFileSync(ruta, 'utf8')));
+    } catch {
+        return false;
+    }
 }
 
 function obtenerNombrePersona(persona) {
@@ -722,7 +984,9 @@ function normalizarTimestampMensaje(valor) {
     // Los timestamps Unix en segundos siguen muy por debajo de 10^12.
     const milisegundos = numero < 1000000000000n ? numero * 1000n : numero;
     if (milisegundos > BigInt(Number.MAX_SAFE_INTEGER)) return null;
-    return Number(milisegundos);
+    const resultado = Number(milisegundos);
+    if (resultado > Date.now() + 5 * 60 * 1000) return null;
+    return resultado;
 }
 
 function normalizarOrigenMensajes(opciones) {
@@ -913,6 +1177,7 @@ class ServicioAgendamiento extends EventEmitter {
         this.estado = estadoInicial();
         this.cargado = false;
         this.tokensAcceso = new Map();
+        this.lineasEliminadas = new Set();
         this.sincronizacion = null;
         this.reservaSincronizacion = null;
         this.ultimoProgreso = null;
@@ -922,8 +1187,19 @@ class ServicioAgendamiento extends EventEmitter {
 
     cargar() {
         if (this.cargado) return this;
+        const depurarFragmentos = [this.rutaDatos, `${this.rutaDatos}.bak`]
+            .some(archivoContieneFragmentoHeredado);
         this.estado = leerJsonSeguro(this.rutaDatos);
         this.cargado = true;
+        if (depurarFragmentos) {
+            this.guardar();
+            try {
+                fs.copyFileSync(this.rutaDatos, `${this.rutaDatos}.bak`);
+            } catch {
+                // El principal ya quedó depurado; el respaldo se renovará al
+                // siguiente guardado si el volumen no permite copiar ahora.
+            }
+        }
         return this;
     }
 
@@ -1080,6 +1356,37 @@ class ServicioAgendamiento extends EventEmitter {
         return { lineaId: info.id, cuentaId };
     }
 
+    eliminarLinea(
+        lineaEntrada,
+        { forzar = false, bloquearRecreacion = false } = {}
+    ) {
+        const info = this.resolverLineaSync(lineaEntrada);
+        const procesoDeEstaLinea =
+            this.sincronizacion?.progreso?.lineaId === info.id ||
+            this.reservaSincronizacion?.progreso?.lineaId === info.id;
+        if (procesoDeEstaLinea && !forzar) {
+            throw new ErrorAgendamiento(
+                'SINCRONIZACION_ACTIVA',
+                'Detené el agendamiento antes de eliminar esta línea.'
+            );
+        }
+        if (procesoDeEstaLinea) this.detenerSincronizacion();
+        const existia = Boolean(this.estado.lineas[info.id]);
+        const teniaAsociacion = Object.hasOwn(
+            this.estado.asociaciones,
+            info.id
+        );
+        delete this.estado.lineas[info.id];
+        delete this.estado.asociaciones[info.id];
+        if (bloquearRecreacion) {
+            this.lineasEliminadas.add(info.id);
+        } else {
+            this.lineasEliminadas.delete(info.id);
+        }
+        if (existia || teniaAsociacion) this.guardar();
+        return existia;
+    }
+
     resolverLineaSync(linea) {
         const valor = linea && typeof linea === 'object'
             ? linea
@@ -1101,6 +1408,12 @@ class ServicioAgendamiento extends EventEmitter {
     }
 
     asegurarLinea(info) {
+        if (this.lineasEliminadas.has(info.id)) {
+            throw new ErrorAgendamiento(
+                'LINEA_ELIMINADA',
+                'La línea fue eliminada y ya no acepta datos pendientes.'
+            );
+        }
         const actual = this.estado.lineas[info.id];
         if (!actual || typeof actual !== 'object') {
             this.estado.lineas[info.id] = {
@@ -1109,6 +1422,7 @@ class ServicioAgendamiento extends EventEmitter {
                 prefijo: obtenerPrefijoLinea(info.nombre),
                 candidatos: {},
                 pendientesJid: {},
+                revisionesIA: {},
                 secuenciaMensajes: 0,
                 actualizadaEn: fechaIso(this.ahora)
             };
@@ -1116,6 +1430,9 @@ class ServicioAgendamiento extends EventEmitter {
             if (!Number.isSafeInteger(actual.secuenciaMensajes)) actual.secuenciaMensajes = 0;
             if (!actual.pendientesJid || typeof actual.pendientesJid !== 'object') {
                 actual.pendientesJid = {};
+            }
+            if (!actual.revisionesIA || typeof actual.revisionesIA !== 'object') {
+                actual.revisionesIA = {};
             }
             const prefijoAnterior = actual.prefijo || obtenerPrefijoLinea(actual.nombre);
             const prefijoNuevo = obtenerPrefijoLinea(info.nombre);
@@ -1137,6 +1454,9 @@ class ServicioAgendamiento extends EventEmitter {
             linea.candidatos[telefono] = {
                 telefono,
                 usuario: null,
+                usuarioFuente: null,
+                usuarioConfianza: null,
+                usuarioBloqueadoManual: false,
                 usuarioMensajeTimestamp: null,
                 usuarioMensajeId: null,
                 usuarioMensajeOrigen: null,
@@ -1159,6 +1479,9 @@ class ServicioAgendamiento extends EventEmitter {
             linea.pendientesJid[jid] = {
                 jid,
                 usuario: null,
+                usuarioFuente: null,
+                usuarioConfianza: null,
+                usuarioBloqueadoManual: false,
                 usuarioMensajeTimestamp: null,
                 usuarioMensajeId: null,
                 usuarioMensajeOrigen: null,
@@ -1259,7 +1582,16 @@ class ServicioAgendamiento extends EventEmitter {
                 }
                 detectados += 1;
                 if (!fuenteUsuarioEsMasReciente(pendiente, fuente)) continue;
+                if (
+                    pendiente.usuarioBloqueadoManual &&
+                    normalizarPalabraComparable(pendiente.usuario) !==
+                        normalizarPalabraComparable(resultado.usuario)
+                ) continue;
                 pendiente.usuario = resultado.usuario;
+                pendiente.usuarioFuente = pendiente.usuarioBloqueadoManual
+                    ? 'manual'
+                    : 'regla';
+                pendiente.usuarioConfianza = 100;
                 pendiente.usuarioMensajeTimestamp = fuente.timestamp;
                 pendiente.usuarioMensajeId = fuente.id;
                 pendiente.usuarioMensajeOrigen = fuente.origen;
@@ -1272,10 +1604,19 @@ class ServicioAgendamiento extends EventEmitter {
             const candidato = this.asegurarCandidato(linea, telefono);
             detectados += 1;
             if (!fuenteUsuarioEsMasReciente(candidato, fuente)) continue;
+            if (
+                candidato.usuarioBloqueadoManual &&
+                normalizarPalabraComparable(candidato.usuario) !==
+                    normalizarPalabraComparable(resultado.usuario)
+            ) continue;
             if (candidato.usuario !== resultado.usuario) {
                 candidato.ultimoResultado = null;
             }
             candidato.usuario = resultado.usuario;
+            candidato.usuarioFuente = candidato.usuarioBloqueadoManual
+                ? 'manual'
+                : 'regla';
+            candidato.usuarioConfianza = 100;
             candidato.usuarioMensajeTimestamp = fuente.timestamp;
             candidato.usuarioMensajeId = fuente.id;
             candidato.usuarioMensajeOrigen = fuente.origen;
@@ -1294,6 +1635,292 @@ class ServicioAgendamiento extends EventEmitter {
             omitidos,
             total: Object.keys(linea.candidatos).length
         };
+    }
+
+    crearRevisionIA(linea, destino, deteccion) {
+        const usuario = normalizarUsuarioAutomatico(deteccion?.usuario);
+        if (!usuario || (!destino.telefono && !esJidLid(destino.jid))) return null;
+        const evidencias = (Array.isArray(deteccion?.evidencias)
+            ? deteccion.evidencias
+            : [])
+            .map(item => {
+                const idOriginal = textoSeguro(item?.id || item, 240);
+                if (!idOriginal) return null;
+                return {
+                    id: crypto.createHash('sha256')
+                        .update(idOriginal)
+                        .digest('hex')
+                        .slice(0, 24),
+                    timestampMs: normalizarTimestampMensaje(item?.timestampMs) || 0
+                };
+            })
+            .filter(Boolean)
+            .slice(0, 8)
+            ;
+        const id = crypto.createHash('sha256').update(JSON.stringify([
+            linea.id,
+            destino.telefono || destino.jid,
+            normalizarPalabraComparable(usuario)
+        ])).digest('hex').slice(0, 32);
+        const existente = linea.revisionesIA[id];
+        if (existente?.estado === 'rechazada') return existente;
+        const instante = fechaIso(this.ahora);
+        linea.revisionesIA[id] = {
+            id,
+            telefono: destino.telefono || null,
+            jid: destino.telefono ? null : destino.jid,
+            usuario,
+            confianza: Math.min(100, Math.max(0, Number(deteccion.confianza) || 0)),
+            tipoEvidencia: textoSeguro(
+                deteccion.motivo || deteccion.tipoEvidencia,
+                60
+            ) || 'ia',
+            evidencias,
+            estado: 'pendiente',
+            detectadaEn: existente?.detectadaEn || instante,
+            actualizadaEn: instante
+        };
+        const revisiones = Object.values(linea.revisionesIA);
+        if (revisiones.length > 1000) {
+            revisiones
+                .sort((a, b) => String(a.actualizadaEn).localeCompare(String(b.actualizadaEn)))
+                .slice(0, revisiones.length - 1000)
+                .forEach(item => delete linea.revisionesIA[item.id]);
+        }
+        return linea.revisionesIA[id];
+    }
+
+    async registrarDeteccionesIA(
+        lineaEntrada,
+        detecciones,
+        resolverJid,
+        opciones = {}
+    ) {
+        const comprobarVigencia = () => {
+            if (
+                opciones?.signal?.aborted ||
+                (
+                    typeof opciones?.esVigente === 'function' &&
+                    !opciones.esVigente()
+                )
+            ) {
+                throw new ErrorAgendamiento(
+                    'ANALISIS_IA_CANCELADO',
+                    'El análisis cambió o fue detenido antes de guardar sugerencias.'
+                );
+            }
+        };
+        comprobarVigencia();
+        const info = await this.resolverLinea(lineaEntrada);
+        comprobarVigencia();
+        let aprobadas = 0;
+        let revisiones = 0;
+        let omitidas = 0;
+        const preparadas = [];
+
+        for (const deteccion of Array.isArray(detecciones) ? detecciones : []) {
+            comprobarVigencia();
+            const usuario = normalizarUsuarioAutomatico(deteccion?.usuario);
+            const chatId = textoSeguro(deteccion?.chatId, 240);
+            if (
+                !usuario || !chatId ||
+                !['auto', 'revision'].includes(deteccion?.clasificacion)
+            ) {
+                omitidas += 1;
+                continue;
+            }
+            const telefono = await this.resolverTelefono(
+                chatId,
+                resolverJid,
+                { ia: true, lineaId: info.id }
+            );
+            comprobarVigencia();
+            const destino = telefono
+                ? { telefono, jid: null }
+                : esJidLid(chatId)
+                    ? { telefono: null, jid: chatId }
+                    : null;
+            if (!destino) {
+                omitidas += 1;
+                continue;
+            }
+            const fechaEvidencia = Math.max(
+                0,
+                ...(Array.isArray(deteccion?.evidencias)
+                    ? deteccion.evidencias.map(item => (
+                        normalizarTimestampMensaje(item?.timestampMs) || 0
+                    ))
+                    : [])
+            );
+            preparadas.push({
+                deteccion,
+                usuario,
+                chatId,
+                telefono,
+                destino,
+                fechaEvidencia
+            });
+        }
+
+        comprobarVigencia();
+        if (!preparadas.length) return { aprobadas, revisiones, omitidas };
+        const masRecientePorDestino = new Map();
+        for (const preparada of preparadas) {
+            const claveDestino = preparada.telefono || preparada.destino.jid;
+            const anterior = masRecientePorDestino.get(claveDestino);
+            if (
+                !anterior ||
+                preparada.fechaEvidencia >= anterior.fechaEvidencia
+            ) {
+                if (anterior) omitidas += 1;
+                masRecientePorDestino.set(claveDestino, preparada);
+            } else {
+                omitidas += 1;
+            }
+        }
+        const linea = this.asegurarLinea(info);
+        for (const preparada of masRecientePorDestino.values()) {
+            const { deteccion, usuario, chatId, telefono, destino } = preparada;
+            const candidatoExistente = telefono
+                ? linea.candidatos[telefono]
+                : linea.pendientesJid[chatId];
+            const usuarioActual = normalizarPalabraComparable(
+                candidatoExistente?.usuario
+            );
+            const mismoUsuario = usuarioActual && usuarioActual ===
+                normalizarPalabraComparable(usuario);
+            if (candidatoExistente?.usuario && mismoUsuario) {
+                // Una confirmación de IA nunca degrada una decisión manual ni
+                // una regla determinista ya aceptada. Tampoco crea una revisión
+                // redundante para exactamente el mismo usuario.
+                omitidas += 1;
+                continue;
+            }
+            const puedeAprobar = deteccion.clasificacion === 'auto' &&
+                !candidatoExistente?.usuario;
+
+            if (puedeAprobar) {
+                const candidato = candidatoExistente || (telefono
+                    ? this.asegurarCandidato(linea, telefono)
+                    : this.asegurarPendienteJid(linea, chatId));
+                candidato.ultimoResultado = null;
+                candidato.usuario = usuario;
+                candidato.usuarioFuente = 'ia';
+                candidato.usuarioConfianza = Math.min(
+                    100,
+                    Math.max(0, Number(deteccion.confianza) || 0)
+                );
+                candidato.usuarioBloqueadoManual = false;
+                const evidenciaPrincipal = textoSeguro(
+                    deteccion?.evidencias?.[0]?.id,
+                    240
+                );
+                candidato.usuarioMensajeId = evidenciaPrincipal
+                    ? crypto.createHash('sha256')
+                        .update(evidenciaPrincipal)
+                        .digest('hex')
+                        .slice(0, 32)
+                    : null;
+                candidato.usuarioMensajeTimestamp = normalizarTimestampMensaje(
+                    deteccion?.evidencias?.[0]?.timestampMs
+                );
+                candidato.usuarioMensajeOrigen = 'vivo';
+                candidato.usuarioDetectadoEn = fechaIso(this.ahora);
+                candidato.actualizadoEn = fechaIso(this.ahora);
+                aprobadas += 1;
+                continue;
+            }
+
+            const revision = this.crearRevisionIA(linea, destino, {
+                ...deteccion,
+                usuario
+            });
+            if (revision?.estado === 'pendiente') revisiones += 1;
+            else omitidas += 1;
+        }
+
+        comprobarVigencia();
+        linea.actualizadaEn = fechaIso(this.ahora);
+        if (aprobadas || revisiones) this.guardar();
+        return { aprobadas, revisiones, omitidas };
+    }
+
+    async resolverRevisionIA(
+        lineaEntrada,
+        revisionIdEntrada,
+        decision = {},
+        resolverJid
+    ) {
+        if (this.sincronizacion || this.reservaSincronizacion) {
+            throw new ErrorAgendamiento(
+                'SINCRONIZACION_ACTIVA',
+                'Detené el agendamiento antes de resolver sugerencias de IA.'
+            );
+        }
+        const info = await this.resolverLinea(lineaEntrada);
+        const linea = this.asegurarLinea(info);
+        const revisionId = textoSeguro(revisionIdEntrada, 80);
+        const revision = linea.revisionesIA[revisionId];
+        if (!revision) {
+            throw new ErrorAgendamiento(
+                'REVISION_IA_NO_EXISTE',
+                'La sugerencia de IA ya no existe.'
+            );
+        }
+        const accion = textoSeguro(decision?.accion, 20);
+        if (!['aprobar', 'editar', 'rechazar'].includes(accion)) {
+            throw new ErrorAgendamiento(
+                'ACCION_REVISION_INVALIDA',
+                'Elegí aprobar, editar o rechazar la sugerencia.'
+            );
+        }
+        if (accion === 'rechazar') {
+            revision.estado = 'rechazada';
+            revision.actualizadaEn = fechaIso(this.ahora);
+            this.guardar();
+            return { accion, revisionId };
+        }
+
+        const usuario = accion === 'editar'
+            ? normalizarUsuario(decision?.usuario)
+            : normalizarUsuarioAutomatico(revision.usuario);
+        if (!usuario) {
+            throw new ErrorAgendamiento(
+                'USUARIO_IA_INVALIDO',
+                accion === 'editar'
+                    ? 'La corrección debe tener entre 3 y 80 caracteres y usar letras, números, punto, guion o guion bajo.'
+                    : 'La sugerencia de IA ya no contiene un usuario automático válido.'
+            );
+        }
+        const telefono = revision.telefono || await this.resolverTelefono(
+            revision.jid,
+            resolverJid,
+            { ia: true, revision: true, lineaId: info.id }
+        );
+        if (!telefono) {
+            throw new ErrorAgendamiento(
+                'JID_NO_RESUELTO',
+                'WhatsApp todavía no entregó el número real de este chat.'
+            );
+        }
+        const candidato = this.asegurarCandidato(linea, telefono);
+        if (
+            normalizarPalabraComparable(candidato.usuario) !==
+            normalizarPalabraComparable(usuario)
+        ) candidato.ultimoResultado = null;
+        candidato.usuario = usuario;
+        candidato.usuarioFuente = 'manual';
+        candidato.usuarioConfianza = 100;
+        candidato.usuarioBloqueadoManual = true;
+        candidato.usuarioDetectadoEn = fechaIso(this.ahora);
+        candidato.actualizadoEn = fechaIso(this.ahora);
+        delete linea.revisionesIA[revisionId];
+        if (revision.jid && linea.pendientesJid[revision.jid]) {
+            delete linea.pendientesJid[revision.jid];
+        }
+        linea.actualizadaEn = fechaIso(this.ahora);
+        this.guardar();
+        return { accion, revisionId, telefono, usuario };
     }
 
     async registrarSenal(linea, jids, tipo, resolverJid, contexto) {
@@ -1394,17 +2021,37 @@ class ServicioAgendamiento extends EventEmitter {
             const candidato = this.asegurarCandidato(linea, telefono);
             if (pendiente.usuario) {
                 const fuente = fuenteActualCandidato(pendiente);
-                if (fuenteUsuarioEsMasReciente(candidato, fuente)) {
+                const mismoUsuario = normalizarPalabraComparable(
+                    candidato.usuario
+                ) === normalizarPalabraComparable(pendiente.usuario);
+                const protegeDecisionManual =
+                    candidato.usuarioBloqueadoManual === true &&
+                    Boolean(candidato.usuario);
+                if (
+                    !protegeDecisionManual &&
+                    fuenteUsuarioEsMasReciente(candidato, fuente)
+                ) {
                     if (candidato.usuario !== pendiente.usuario) {
                         candidato.ultimoResultado = null;
                     }
                     candidato.usuario = pendiente.usuario;
+                    candidato.usuarioFuente = pendiente.usuarioFuente || 'regla';
+                    candidato.usuarioConfianza = Number.isFinite(
+                        Number(pendiente.usuarioConfianza)
+                    ) ? Number(pendiente.usuarioConfianza) : 100;
+                    candidato.usuarioBloqueadoManual =
+                        pendiente.usuarioBloqueadoManual === true;
                     candidato.usuarioMensajeTimestamp = fuente.timestamp;
                     candidato.usuarioMensajeId = fuente.id;
                     candidato.usuarioMensajeOrigen = fuente.origen;
                     candidato.usuarioMensajeEvento = fuente.evento;
                     candidato.usuarioMensajePosicion = fuente.posicion;
                     candidato.usuarioDetectadoEn = pendiente.actualizadoEn;
+                } else if (protegeDecisionManual && mismoUsuario) {
+                    // Se pueden fusionar señales del LID, pero nunca degradar
+                    // el origen, la confianza ni el bloqueo de una corrección
+                    // realizada por una persona.
+                    candidato.usuarioBloqueadoManual = true;
                 }
             }
             const tieneSenal = Boolean(
@@ -1422,6 +2069,12 @@ class ServicioAgendamiento extends EventEmitter {
             }
             candidato.actualizadoEn = fechaIso(this.ahora);
             delete linea.pendientesJid[jid];
+            for (const revision of Object.values(linea.revisionesIA || {})) {
+                if (revision?.jid !== jid) continue;
+                revision.telefono = telefono;
+                revision.jid = null;
+                revision.actualizadaEn = fechaIso(this.ahora);
+            }
             resueltos += 1;
         }
         if (resueltos) {
@@ -1447,6 +2100,12 @@ class ServicioAgendamiento extends EventEmitter {
             .map(candidato => ({
                 telefono: candidato.telefono,
                 usuario: candidato.usuario,
+                usuarioFuente: candidato.usuarioFuente || null,
+                usuarioConfianza: Number.isFinite(Number(candidato.usuarioConfianza))
+                    ? Number(candidato.usuarioConfianza)
+                    : null,
+                usuarioBloqueadoManual:
+                    candidato.usuarioBloqueadoManual === true,
                 mutuo: Boolean(candidato.mutuo),
                 senales: clonarSeguro(candidato.senales || {}),
                 nombreObjetivo: candidato.usuario
@@ -1467,6 +2126,11 @@ class ServicioAgendamiento extends EventEmitter {
             .map(item => ({
                 telefono: null,
                 usuario: item.usuario,
+                usuarioFuente: item.usuarioFuente || null,
+                usuarioConfianza: Number.isFinite(Number(item.usuarioConfianza))
+                    ? Number(item.usuarioConfianza)
+                    : null,
+                usuarioBloqueadoManual: item.usuarioBloqueadoManual === true,
                 mutuo: Boolean(
                     item.senales?.vioEstado || item.senales?.publicoEstado
                 ),
@@ -1482,6 +2146,31 @@ class ServicioAgendamiento extends EventEmitter {
                 sincronizado: false,
                 pendienteResolucion: true
             }));
+        const revisionesIA = Object.values(linea.revisionesIA || {})
+            .filter(item => item?.estado === 'pendiente')
+            .map(item => ({
+                id: item.id,
+                telefono: item.telefono || null,
+                usuario: item.usuario,
+                confianza: item.confianza,
+                tipoEvidencia: item.tipoEvidencia,
+                detectadaEn: item.detectadaEn || null,
+                evidencias: (Array.isArray(item.evidencias)
+                    ? item.evidencias
+                    : [])
+                    .map(evidencia => ({
+                        timestampMs: normalizarTimestampMensaje(
+                            evidencia?.timestampMs
+                        ) || 0
+                    }))
+                    .filter(evidencia => evidencia.timestampMs > 0)
+                    .slice(0, 3),
+                pendienteResolucion: !item.telefono
+            }))
+            .sort((a, b) => (
+                Number(b.confianza) - Number(a.confianza) ||
+                String(a.usuario).localeCompare(String(b.usuario))
+            ));
         return {
             linea: { id: linea.id, nombre: linea.nombre, prefijo: linea.prefijo || null },
             cuentaId: cuentaAsociada,
@@ -1490,6 +2179,7 @@ class ServicioAgendamiento extends EventEmitter {
             busqueda: this.obtenerConfiguracionBusqueda(),
             candidatos,
             pendientesResolucion,
+            revisionesIA,
             totales: {
                 candidatos: candidatos.length,
                 conUsuario: candidatos.filter(item => item.usuario).length,
@@ -1497,7 +2187,8 @@ class ServicioAgendamiento extends EventEmitter {
                 pendientes: candidatos.filter(item => !item.usuario).length,
                 jidsPendientes: Object.keys(linea.pendientesJid || {}).length,
                 usuariosPendientesJid: Object.values(linea.pendientesJid || {})
-                    .filter(item => Boolean(item?.usuario)).length
+                    .filter(item => Boolean(item?.usuario)).length,
+                revisionesIA: revisionesIA.length
             },
             sincronizacion: this.sincronizacion
                 ? clonarSeguro(this.sincronizacion.progreso)
@@ -1569,11 +2260,11 @@ class ServicioAgendamiento extends EventEmitter {
                     }
                     const cuenta = await this.completarOAuth(codigo, verificador, base);
                     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-                    res.end('<!doctype html><meta charset="utf-8"><title>AutoStatues</title><p>Cuenta conectada. Ya podés cerrar esta ventana.</p>');
+                    res.end('<!doctype html><meta charset="utf-8"><title>ZeroOne</title><p>Cuenta conectada. Ya podés cerrar esta ventana.</p>');
                     terminar(null, sanitizarCuenta(cuenta));
                 } catch (error) {
                     res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
-                    res.end('No se pudo conectar la cuenta. Volvé a AutoStatues.');
+                    res.end('No se pudo conectar la cuenta. Volvé a ZeroOne.');
                     terminar(error);
                 }
             });
@@ -2260,6 +2951,8 @@ module.exports = {
     indexarConexiones,
     leerJsonSeguro,
     normalizarTelefono,
+    normalizarUsuario,
+    normalizarUsuarioAutomatico,
     normalizarPalabrasClaveUsuario,
     normalizarTextoPlantilla,
     normalizarTimestampMensaje,

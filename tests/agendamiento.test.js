@@ -145,6 +145,96 @@ test('las palabras clave son literales, configurables y se conservan sin guardar
         ),
         { usuario: 'jugador_89' }
     );
+    assert.deepEqual(
+        parsearUsuarioPorPalabrasClave(
+            'rositaflor77 todo listo ✅',
+            ['todo listo']
+        ),
+        { usuario: 'rositaflor77' },
+        'acepta un nombre alfanumérico pegado a la frase completa'
+    );
+    assert.deepEqual(
+        parsearUsuarioPorPalabrasClave(
+            'rositaflor todo listo 🔥',
+            ['todo listo']
+        ),
+        { usuario: 'rositaflor' },
+        'también admite nombres sin números cuando no son palabras comunes'
+    );
+    assert.equal(
+        parsearUsuarioPorPalabrasClave(
+            'rositaflor77 todo listo ✅',
+            ['listo']
+        ),
+        null,
+        'no salta la palabra vecina "todo" para adivinar un usuario'
+    );
+    assert.equal(
+        parsearUsuarioPorPalabrasClave(
+            'carga realizada todo listo ✅',
+            ['listo']
+        ),
+        null,
+        'una confirmación sin usuario debe quedar pendiente'
+    );
+    assert.equal(
+        parsearUsuarioPorPalabrasClave(
+            '123456 todo listo ✅',
+            ['todo listo']
+        ),
+        null,
+        'un número suelto nunca se considera usuario'
+    );
+    assert.equal(
+        parsearUsuarioPorPalabrasClave(
+            'Usuario: 987654321',
+            ['Usuario:']
+        ),
+        null,
+        'un número posterior a la frase tampoco se considera usuario'
+    );
+    for (const palabra of ['todo', 'LISTO', 'Qué', 'pero', 'gracias']) {
+        assert.equal(
+            parsearUsuarioPorPalabrasClave(
+                `Usuario: ${palabra}`,
+                ['Usuario:']
+            ),
+            null,
+            `la palabra común "${palabra}" no debe convertirse en usuario`
+        );
+    }
+    assert.equal(
+        parsearUsuarioPorPalabrasClave(
+            'Está todo listo ✅',
+            ['todo']
+        ),
+        null,
+        'una frase natural sin nombre queda pendiente'
+    );
+    assert.equal(
+        parsearUsuarioPorPalabrasClave(
+            'sobretodo rosita77',
+            ['todo']
+        ),
+        null,
+        'una palabra clave no coincide dentro de otra palabra'
+    );
+    assert.equal(
+        parsearUsuarioPorPalabrasClave(
+            'superUsuario: intruso77',
+            ['Usuario:']
+        ),
+        null,
+        'una etiqueta no coincide dentro de una palabra más larga'
+    );
+    assert.deepEqual(
+        parsearUsuarioPorPalabrasClave(
+            'Usuario: todo; Usuario: rosita77',
+            ['Usuario:']
+        ),
+        { usuario: 'rosita77' },
+        'continúa buscando si la primera aparición es inválida'
+    );
     assert.equal(
         parsearUsuarioPorPalabrasClave(
             'Cuenta .*: no_debe_coincidir',
@@ -152,6 +242,73 @@ test('las palabras clave son literales, configurables y se conservan sin guardar
         ),
         null,
         'las frases configuradas nunca se interpretan como regex'
+    );
+    for (const texto of [
+        'greenvip.net todo listo',
+        'rosa@gmail.com todo listo',
+        'pedido123 todo listo',
+        '150mil todo listo',
+        'final todo listo',
+        'recibido todo listo',
+        'REF123 todo listo',
+        'cargaABC todo listo',
+        'perfecto77 todo listo',
+        'cliente123 todo listo',
+        'cuenta123 todo listo',
+        'correo123 todo listo',
+        'mensaje123 todo listo',
+        'telefono123 todo listo',
+        'rosa..flor todo listo',
+        'https://rositaflor todo listo',
+        '@rositaflor todo listo',
+        '/rositaflor todo listo',
+        '1rosita todo listo',
+        'r_o todo listo'
+    ]) {
+        assert.equal(
+            parsearUsuarioPorPalabrasClave(texto, ['todo listo']),
+            null,
+            `la confirmación no debe aceptar el falso positivo: ${texto}`
+        );
+    }
+    for (const usuarioInvalido of [
+        'pendiente',
+        'REF123',
+        'cargaABC',
+        'perfecto77',
+        'cliente123',
+        'cuenta123',
+        'correo123',
+        'mensaje123',
+        'telefono123',
+        'rosa..flor',
+        '1rosita',
+        'r_o'
+    ]) {
+        assert.equal(
+            parsearUsuarioPorPalabrasClave(
+                `Usuario: ${usuarioInvalido}`,
+                ['Usuario:']
+            ),
+            null,
+            `la etiqueta no debe aceptar el falso positivo: ${usuarioInvalido}`
+        );
+    }
+    assert.equal(
+        parsearUsuarioPorPalabrasClave(
+            'todo listo rositaflor77',
+            ['todo listo']
+        ),
+        null,
+        'una confirmación toma exclusivamente el usuario anterior'
+    );
+    assert.equal(
+        parsearUsuarioPorPalabrasClave(
+            'rositaflor77 Usuario:',
+            ['Usuario:']
+        ),
+        null,
+        'una etiqueta toma exclusivamente el usuario posterior'
     );
 
     const setentaFrases = Array.from(
@@ -171,6 +328,14 @@ test('las palabras clave son literales, configurables y se conservan sin guardar
             { estricto: true }
         ),
         /hasta 70 frases/u
+    );
+    assert.throws(
+        () => normalizarPalabrasClaveUsuario(['de'], { estricto: true }),
+        error => error?.codigo === 'PALABRA_CLAVE_GENERICA'
+    );
+    assert.deepEqual(
+        normalizarPalabrasClaveUsuario(['de', 'Usuario:']),
+        ['Usuario:']
     );
 
     const rutaDatos = crearTemporal(t);
@@ -207,6 +372,23 @@ test('las palabras clave son literales, configurables y se conservan sin guardar
         }]
     );
 
+    await servicio.registrarMensajes(
+        { id: 'linea-palabras', nombre: 'Línea 31' },
+        [{
+            key: {
+                fromMe: true,
+                remoteJid: '595981230031@s.whatsapp.net'
+            },
+            message: { conversation: 'Usuario: todo' }
+        }, {
+            key: {
+                fromMe: true,
+                remoteJid: '595981230031@s.whatsapp.net'
+            },
+            message: { conversation: 'Usuario: 123456' }
+        }]
+    );
+
     const vista = servicio.obtenerVista({
         id: 'linea-palabras',
         nombre: 'Línea 31'
@@ -228,6 +410,301 @@ test('las palabras clave son literales, configurables y se conservan sin guardar
         ['Alias del jugador:', 'Usuario:', 'carga confirmada']
     );
     recargado.cerrar();
+});
+
+test('al recargar limpia falsos usuarios guardados sin borrar señales mutuas', t => {
+    const rutaDatos = crearTemporal(t);
+    fs.writeFileSync(rutaDatos, JSON.stringify({
+        lineas: {
+            'linea-limpieza': {
+                id: 'linea-limpieza',
+                nombre: 'Línea 51',
+                candidatos: {
+                    sin_senal: {
+                        telefono: '+595981510001',
+                        usuario: 'todo',
+                        usuarioMensajeTimestamp: 1700000000000,
+                        usuarioMensajeId: 'FALSO-1',
+                        usuarioMensajeOrigen: 'vivo',
+                        usuarioMensajeEvento: 4,
+                        usuarioMensajePosicion: 1,
+                        mutuo: false,
+                        senales: {},
+                        usuarioDetectadoEn: '2026-07-17T10:00:00.000Z',
+                        ultimoResultado: { tipo: 'creado', cuentaId: 'cuenta-vieja' }
+                    },
+                    con_senal: {
+                        telefono: '+595981510002',
+                        usuario: '123456',
+                        usuarioMensajeTimestamp: 1700000000000,
+                        usuarioMensajeId: 'FALSO-2',
+                        usuarioMensajeOrigen: 'historial',
+                        usuarioMensajeEvento: 5,
+                        usuarioMensajePosicion: 2,
+                        mutuo: true,
+                        senales: { vioEstado: '2026-07-17T10:01:00.000Z' },
+                        usuarioDetectadoEn: '2026-07-17T10:00:00.000Z',
+                        ultimoResultado: { tipo: 'actualizado', cuentaId: 'cuenta-vieja' }
+                    },
+                    valido: {
+                        telefono: '+595981510003',
+                        usuario: 'rositaflor77',
+                        usuarioMensajeTimestamp: 1700000000000,
+                        usuarioMensajeId: 'VALIDO-1',
+                        usuarioMensajeOrigen: 'historial',
+                        usuarioMensajeEvento: 6,
+                        usuarioMensajePosicion: 3,
+                        mutuo: false,
+                        senales: {},
+                        usuarioDetectadoEn: '2026-07-17T10:00:00.000Z',
+                        ultimoResultado: { tipo: 'creado', cuentaId: 'cuenta-vieja' }
+                    },
+                    automatico_operativo: {
+                        telefono: '+595981510004',
+                        usuario: 'perfecto77',
+                        usuarioFuente: 'regla',
+                        mutuo: false,
+                        senales: {}
+                    },
+                    correccion_manual: {
+                        telefono: '+595981510005',
+                        usuario: 'cliente123',
+                        usuarioFuente: 'manual',
+                        usuarioBloqueadoManual: true,
+                        mutuo: false,
+                        senales: {}
+                    }
+                }
+            }
+        }
+    }));
+
+    const servicio = crearServicioAgendamiento({ rutaDatos });
+    const vista = servicio.obtenerVista({ id: 'linea-limpieza', nombre: 'Línea 51' });
+    assert.equal(vista.candidatos.some(item => item.telefono === '+595981510001'), false);
+
+    const pendiente = vista.candidatos.find(item => item.telefono === '+595981510002');
+    assert.equal(pendiente.usuario, null);
+    assert.equal(pendiente.mutuo, true);
+    assert.equal(pendiente.ultimoResultado, null);
+    assert.equal(pendiente.sincronizado, false);
+    const pendienteInterno = servicio.estado.lineas['linea-limpieza']
+        .candidatos['+595981510002'];
+    assert.equal(pendienteInterno.usuarioMensajeTimestamp, null);
+    assert.equal(pendienteInterno.usuarioMensajeId, null);
+    assert.equal(pendienteInterno.usuarioDetectadoEn, null);
+
+    assert.equal(
+        vista.candidatos.find(item => item.telefono === '+595981510003').usuario,
+        'rositaflor77'
+    );
+    assert.equal(
+        vista.candidatos.some(item => item.telefono === '+595981510004'),
+        false,
+        'un falso positivo automático antiguo también se depura por prefijo'
+    );
+    assert.equal(
+        vista.candidatos.find(item => item.telefono === '+595981510005').usuario,
+        'cliente123',
+        'una corrección humana explícita usa el validador manual más amplio'
+    );
+    servicio.cerrar();
+});
+
+test('la IA solo autoaprueba evidencia fuerte y los conflictos requieren revisión humana', async t => {
+    const rutaDatos = crearTemporal(t);
+    const servicio = crearServicioAgendamiento({ rutaDatos, codigoPais: '595' });
+    const linea = { id: 'linea-ia', nombre: 'Línea 44' };
+
+    const primera = await servicio.registrarDeteccionesIA(linea, [{
+        chatId: '595981440001@s.whatsapp.net',
+        clasificacion: 'auto',
+        usuario: 'rositaflor77',
+        confianza: 98,
+        motivo: 'EVIDENCIA_FUERTE',
+        evidencias: [{ id: 'MSG-SEGURO-1', timestampMs: 1700000000000 }]
+    }]);
+    assert.deepEqual(primera, { aprobadas: 1, revisiones: 0, omitidas: 0 });
+    let vista = servicio.obtenerVista(linea);
+    assert.equal(vista.candidatos[0].usuario, 'rositaflor77');
+    assert.equal(vista.candidatos[0].usuarioFuente, 'ia');
+    assert.equal(vista.candidatos[0].usuarioConfianza, 98);
+
+    const conflicto = await servicio.registrarDeteccionesIA(linea, [{
+        chatId: '595981440001@s.whatsapp.net',
+        clasificacion: 'auto',
+        usuario: 'florencia88',
+        confianza: 99,
+        motivo: 'EVIDENCIA_FUERTE',
+        evidencias: [{ id: 'MSG-SEGURO-2', timestampMs: 1700000001000 }]
+    }]);
+    assert.deepEqual(conflicto, { aprobadas: 0, revisiones: 1, omitidas: 0 });
+    vista = servicio.obtenerVista(linea);
+    assert.equal(vista.candidatos[0].usuario, 'rositaflor77');
+    assert.equal(vista.revisionesIA.length, 1);
+    assert.equal(vista.revisionesIA[0].usuario, 'florencia88');
+
+    await servicio.resolverRevisionIA(
+        linea,
+        vista.revisionesIA[0].id,
+        { accion: 'aprobar' }
+    );
+    vista = servicio.obtenerVista(linea);
+    assert.equal(vista.candidatos[0].usuario, 'florencia88');
+    assert.equal(vista.candidatos[0].usuarioFuente, 'manual');
+    assert.equal(vista.candidatos[0].usuarioBloqueadoManual, true);
+
+    await servicio.registrarMensajes(linea, [{
+        key: {
+            fromMe: true,
+            remoteJid: '595981440001@s.whatsapp.net',
+            id: 'REGLA-MAS-NUEVA'
+        },
+        messageTimestamp: 1800000000,
+        message: { conversation: 'Usuario: otracuenta99' }
+    }]);
+    assert.equal(
+        servicio.obtenerVista(linea).candidatos[0].usuario,
+        'florencia88',
+        'una decisión humana no puede ser reemplazada por reglas o IA'
+    );
+
+    const persistido = fs.readFileSync(rutaDatos, 'utf8');
+    assert.equal(persistido.includes('MSG-SEGURO-1'), false);
+    assert.equal(persistido.includes('Usuario: otracuenta99'), false);
+    assert.equal(persistido.includes('Clave:'), false);
+    servicio.cerrar();
+});
+
+test('la IA no degrada una regla igual y exige una acción de revisión explícita', async t => {
+    const servicio = crearServicioAgendamiento({
+        rutaDatos: crearTemporal(t),
+        codigoPais: '595'
+    });
+    const linea = { id: 'linea-precedencia', nombre: 'Línea 61' };
+    await servicio.registrarMensajes(linea, [{
+        key: {
+            fromMe: true,
+            remoteJid: '595981610001@s.whatsapp.net',
+            id: 'REGLA-1'
+        },
+        messageTimestamp: 1700000000,
+        message: { conversation: 'Usuario: rositaflor77' }
+    }]);
+
+    const repetida = await servicio.registrarDeteccionesIA(linea, [{
+        chatId: '595981610001@s.whatsapp.net',
+        clasificacion: 'auto',
+        usuario: 'rositaflor77',
+        confianza: 99,
+        evidencias: [{ id: 'IA-IGUAL', timestampMs: 1700000001000 }]
+    }]);
+    assert.deepEqual(repetida, { aprobadas: 0, revisiones: 0, omitidas: 1 });
+    let vista = servicio.obtenerVista(linea);
+    assert.equal(vista.candidatos[0].usuarioFuente, 'regla');
+    assert.equal(vista.revisionesIA.length, 0);
+
+    await servicio.registrarDeteccionesIA(linea, [{
+        chatId: '595981610001@s.whatsapp.net',
+        clasificacion: 'revision',
+        usuario: 'florencia88',
+        confianza: 82,
+        evidencias: [{ id: 'IA-CONFLICTO', timestampMs: 1700000002000 }]
+    }]);
+    vista = servicio.obtenerVista(linea);
+    await assert.rejects(
+        servicio.resolverRevisionIA(linea, vista.revisionesIA[0].id, {}),
+        error => error.codigo === 'ACCION_REVISION_INVALIDA'
+    );
+    assert.equal(servicio.obtenerVista(linea).revisionesIA.length, 1);
+    servicio.cerrar();
+});
+
+test('resolver LID conserva una corrección manual aunque el pendiente sea más nuevo', async t => {
+    const servicio = crearServicioAgendamiento({
+        rutaDatos: crearTemporal(t),
+        codigoPais: '595'
+    });
+    const linea = { id: 'linea-lid-manual', nombre: 'Línea 62' };
+    const telefonoJid = '595981620001@s.whatsapp.net';
+    await servicio.registrarDeteccionesIA(linea, [{
+        chatId: telefonoJid,
+        clasificacion: 'auto',
+        usuario: 'usuarioinicial77',
+        confianza: 98,
+        evidencias: [{ id: 'BASE-IA', timestampMs: 1700000000000 }]
+    }]);
+    await servicio.registrarDeteccionesIA(linea, [{
+        chatId: telefonoJid,
+        clasificacion: 'revision',
+        usuario: 'correccion99',
+        confianza: 85,
+        evidencias: [{ id: 'REVISION-IA', timestampMs: 1700000001000 }]
+    }]);
+    // La edición humana admite punto aunque la sugerencia automática no.
+    let vista = servicio.obtenerVista(linea);
+    await servicio.resolverRevisionIA(
+        linea,
+        vista.revisionesIA[0].id,
+        { accion: 'editar', usuario: 'correccion.manual' }
+    );
+
+    await servicio.registrarMensajes(linea, [{
+        key: {
+            fromMe: true,
+            remoteJid: '777777@lid',
+            id: 'LID-NUEVO'
+        },
+        messageTimestamp: 1900000000,
+        message: { conversation: 'Usuario: intruso99' }
+    }]);
+    await servicio.resolverPendientesJid(
+        linea,
+        jid => jid === '777777@lid' ? telefonoJid : null
+    );
+    vista = servicio.obtenerVista(linea);
+    const candidato = vista.candidatos.find(
+        item => item.telefono === '+595981620001'
+    );
+    assert.equal(candidato.usuario, 'correccion.manual');
+    assert.equal(candidato.usuarioFuente, 'manual');
+    assert.equal(candidato.usuarioBloqueadoManual, true);
+    servicio.cerrar();
+});
+
+test('la IA deduplica PN y LID por destino y conserva el usuario más reciente', async t => {
+    const servicio = crearServicioAgendamiento({
+        rutaDatos: crearTemporal(t),
+        codigoPais: '595'
+    });
+    const linea = { id: 'linea-pn-lid', nombre: 'Línea 63' };
+    const resultado = await servicio.registrarDeteccionesIA(
+        linea,
+        [
+            {
+                chatId: '595981630001@s.whatsapp.net',
+                clasificacion: 'auto',
+                usuario: 'rositaflor77',
+                confianza: 99,
+                evidencias: [{ id: 'ANTERIOR', timestampMs: 1700000000000 }]
+            },
+            {
+                chatId: '888888@lid',
+                clasificacion: 'auto',
+                usuario: 'florencianueva88',
+                confianza: 98,
+                evidencias: [{ id: 'NUEVO', timestampMs: 1700000100000 }]
+            }
+        ],
+        jid => jid === '888888@lid'
+            ? '595981630001@s.whatsapp.net'
+            : jid
+    );
+    assert.deepEqual(resultado, { aprobadas: 1, revisiones: 0, omitidas: 1 });
+    const candidato = servicio.obtenerVista(linea).candidatos[0];
+    assert.equal(candidato.usuario, 'florencianueva88');
+    assert.equal(candidato.usuarioFuente, 'ia');
+    servicio.cerrar();
 });
 
 test('normaliza teléfonos y genera nombres idempotentes desde el último número de línea', () => {
@@ -662,17 +1139,17 @@ test('la cola crea y actualiza secuencialmente, preserva puntos y manda conflict
     servicio.asociarCuenta(linea, cuenta.id);
 
     await servicio.registrarMensajes(linea, [
-        mensajeUsuario('595981000001', 'nuevo'),
+        mensajeUsuario('595981000001', 'nuevousuario77'),
         mensajeUsuario('595981000002', 'maria_casino'),
         mensajeUsuario('595981000003', 'proveedor_casino'),
-        mensajeUsuario('595981000004', 'usuario_nuevo'),
+        mensajeUsuario('595981000004', 'jugador_nuevo'),
         mensajeUsuario('595981000005', 'duplicado'),
         mensajeUsuario('595981000007', 'no_mover_marcado'),
         mensajeUsuario('595981000008', 'no_mover_legacy'),
         mensajeUsuario('595981000009', 'marcado_nuevo'),
         mensajeUsuario('595981000010', 'nuevo_sin_metadata'),
-        mensajeUsuario('595981000011', 'telefono_uno'),
-        mensajeUsuario('595981000012', 'telefono_dos')
+        mensajeUsuario('595981000011', 'jugador_uno'),
+        mensajeUsuario('595981000012', 'jugador_dos')
     ]);
     await servicio.registrarPublicadoresEstado(linea, [
         estadoPublicado('595981000001'),
@@ -695,11 +1172,11 @@ test('la cola crea y actualiza secuencialmente, preserva puntos y manda conflict
     assert.equal(maximoSimultaneo, 1, 'las mutaciones deben ejecutarse una por una');
 
     const creacion = escrituras.find(item => item.url.includes(':createContact'));
-    assert.equal(creacion.cuerpo.names[0].unstructuredName, 'L28 nuevo 🟣');
+    assert.equal(creacion.cuerpo.names[0].unstructuredName, 'L28 nuevousuario77 🟣');
     assert.equal(creacion.cuerpo.phoneNumbers[0].value, '+595981000001');
     assert.deepEqual(creacion.cuerpo.clientData, [
         { key: 'autostatues_line', value: 'L28' },
-        { key: 'autostatues_user', value: 'nuevo' }
+        { key: 'autostatues_user', value: 'nuevousuario77' }
     ]);
     assert.ok(personFieldsSolicitados.includes('clientData'));
     assert.ok(personFieldsSolicitados.includes('metadata'));
@@ -738,13 +1215,13 @@ test('la cola crea y actualiza secuencialmente, preserva puntos y manda conflict
     );
     assert.equal(
         actualizacionGestionada.cuerpo.names[0].unstructuredName,
-        'L28 usuario_nuevo 🟣',
+        'L28 jugador_nuevo 🟣',
         'un punto existente nunca se debe quitar'
     );
     assert.deepEqual(actualizacionGestionada.cuerpo.clientData, [
         { key: 'integracion_ajena', value: 'conservar-este-valor' },
         { key: 'autostatues_line', value: 'L28' },
-        { key: 'autostatues_user', value: 'usuario_nuevo' }
+        { key: 'autostatues_user', value: 'jugador_nuevo' }
     ], 'al migrar se preservan claves clientData de otros sistemas');
     assert.deepEqual(
         actualizacionGestionada.cuerpo.metadata,
@@ -807,8 +1284,8 @@ test('la cola crea y actualiza secuencialmente, preserva puntos y manda conflict
     assert.equal(vistaRenombrada.linea.nombre, 'Operación 42');
     assert.equal(vistaRenombrada.linea.prefijo, 'L42');
     assert.equal(
-        vistaRenombrada.candidatos.find(item => item.usuario === 'nuevo').nombreObjetivo,
-        'L42 nuevo 🟣'
+        vistaRenombrada.candidatos.find(item => item.usuario === 'nuevousuario77').nombreObjetivo,
+        'L42 nuevousuario77 🟣'
     );
 
     const persistido = fs.readFileSync(rutaDatos, 'utf8');
@@ -1082,11 +1559,11 @@ test('cambiar clientId limpia cuentas y cambiar cuenta de línea invalida result
     const cuentaA = await servicio.completarOAuth('a', 'pkce-a', 'http://127.0.0.1');
     const cuentaB = await servicio.completarOAuth('b', 'pkce-b', 'http://127.0.0.1');
     const linea = { id: 'linea-cuentas', nombre: 'Línea 18' };
-    await servicio.registrarMensajes(linea, [mensajeUsuario('595985000001', 'usuario_cuenta')]);
+    await servicio.registrarMensajes(linea, [mensajeUsuario('595985000001', 'jugador_cuenta')]);
     const candidato = servicio.estado.lineas[linea.id].candidatos['+595985000001'];
 
     servicio.asociarCuenta(linea, cuentaA.id);
-    candidato.ultimoResultado = { tipo: 'creado', nombre: 'L18 usuario_cuenta', cuentaId: cuentaA.id };
+    candidato.ultimoResultado = { tipo: 'creado', nombre: 'L18 jugador_cuenta', cuentaId: cuentaA.id };
     servicio.asociarCuenta(linea, cuentaA.id);
     assert.equal(candidato.ultimoResultado.tipo, 'creado', 'reasociar la misma cuenta conserva');
     servicio.asociarCuenta(linea, cuentaB.id);
@@ -1154,6 +1631,47 @@ test('recupera JSON desde .bak y ambos corruptos arrancan con estado vacío', t 
     assert.deepEqual(vacio.listarCuentas(), []);
     assert.equal(vacio.obtenerVista({ id: 'nueva', nombre: 'Línea 1' }).candidatos.length, 0);
     vacio.cerrar();
+});
+
+test('depura fragmentos heredados tanto del principal como del respaldo', t => {
+    const rutaDatos = crearTemporal(t);
+    const heredado = {
+        version: 3,
+        oauth: null,
+        cuentas: [],
+        asociaciones: {},
+        lineas: {
+            legacy: {
+                id: 'legacy',
+                nombre: 'Línea 18',
+                candidatos: {},
+                pendientes: {},
+                revisionesIA: {
+                    revision: {
+                        id: 'revision',
+                        telefono: '+595981230018',
+                        usuario: 'rositaflor77',
+                        confianza: 80,
+                        evidencias: [{
+                            id: 'evidencia',
+                            timestampMs: 1700000000000,
+                            fragmento: 'secreto heredado'
+                        }]
+                    }
+                }
+            }
+        }
+    };
+    fs.writeFileSync(rutaDatos, JSON.stringify(heredado), 'utf8');
+    fs.writeFileSync(`${rutaDatos}.bak`, JSON.stringify(heredado), 'utf8');
+
+    const servicio = crearServicioAgendamiento({ rutaDatos });
+    for (const ruta of [rutaDatos, `${rutaDatos}.bak`]) {
+        const contenido = fs.readFileSync(ruta, 'utf8');
+        assert.equal(contenido.includes('fragmento'), false);
+        assert.equal(contenido.includes('secreto heredado'), false);
+    }
+    servicio.cerrar();
 });
 
 test('reserva sincrónicamente una cola y permite cancelar durante la resolución de línea', async t => {
@@ -1293,19 +1811,19 @@ test('un usuario que cambia durante create deja el resultado remoto pendiente de
     const linea = { id: 'linea-race', nombre: 'Línea 40' };
     servicio.asociarCuenta(linea, cuenta.id);
     await servicio.registrarMensajes(linea, [
-        mensajeUsuarioConFuente('595987000001', 'usuario_viejo', 1700000100, 'OLD')
+        mensajeUsuarioConFuente('595987000001', 'jugador_viejo', 1700000100, 'OLD')
     ], { origen: 'vivo' });
 
     const proceso = servicio.iniciarSincronizacion(linea);
     await createIniciado;
     await servicio.registrarMensajes(linea, [
-        mensajeUsuarioConFuente('595987000001', 'usuario_nuevo', 1700000200, 'NEW')
+        mensajeUsuarioConFuente('595987000001', 'jugador_nuevo', 1700000200, 'NEW')
     ], { origen: 'vivo' });
     liberarCreate();
     await proceso;
 
     const candidato = servicio.obtenerVista(linea).candidatos[0];
-    assert.equal(candidato.usuario, 'usuario_nuevo');
+    assert.equal(candidato.usuario, 'jugador_nuevo');
     assert.equal(candidato.ultimoResultado, null);
     assert.equal(candidato.sincronizado, false);
     servicio.cerrar();

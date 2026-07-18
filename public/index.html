@@ -3,9 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AutoStatues Dashboard</title>
+    <meta name="theme-color" content="#09060f">
+    <meta name="application-name" content="ZeroOne">
+    <link rel="icon" type="image/png" href="/assets/zeroone-icon.png">
+    <meta
+        http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; font-src 'self' data:; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'self'"
+    >
+    <title>ZeroOne</title>
     <style>
+        @font-face {
+            font-family: "Wix Madefor Display";
+            src: url("/fonts/Wix_Madefor_Display/WixMadeforDisplay-VariableFont_wght.ttf") format("truetype");
+            font-display: swap;
+            font-style: normal;
+            font-weight: 400 800;
+        }
+
+        @font-face {
+            font-family: "Stadium";
+            src: url("/fonts/Stadium/stadium.ttf") format("truetype");
+            font-display: swap;
+            font-style: normal;
+            font-weight: 400;
+        }
+
         :root {
+            --font-ui: "Wix Madefor Display", "Segoe UI", Arial, sans-serif;
             --bg: #0f1726;
             --sidebar: #1e2939;
             --sidebar-active: #3a4659;
@@ -38,12 +62,13 @@
             overflow: hidden;
             background: var(--bg);
             color: var(--text);
-            font-family: Inter, "Segoe UI", Arial, sans-serif;
+            font-family: var(--font-ui);
         }
 
         button,
         input,
-        textarea {
+        textarea,
+        select {
             font: inherit;
         }
 
@@ -1380,7 +1405,7 @@
                 radial-gradient(circle at 18% 11%, rgba(49, 233, 129, 0.08), transparent 24%),
                 radial-gradient(circle at 88% 12%, rgba(92, 141, 255, 0.12), transparent 30%),
                 linear-gradient(145deg, #07101d 0%, #0a1422 48%, #08111d 100%);
-            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-family: var(--font-ui);
         }
 
         body::before {
@@ -6428,6 +6453,356 @@
             color: #5eead4;
         }
 
+        .agenda-ai-panel {
+            overflow: hidden;
+            border-color: rgba(124, 114, 255, .2);
+            background:
+                radial-gradient(circle at 96% 0%, rgba(45, 212, 191, .08), transparent 34%),
+                radial-gradient(circle at 0% 100%, rgba(124, 114, 255, .09), transparent 36%),
+                var(--surface);
+        }
+
+        .agenda-ai-heading,
+        .agenda-ai-model,
+        .agenda-ai-analysis-head,
+        .agenda-ai-review-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            align-items: center;
+        }
+
+        .agenda-ai-heading > div,
+        .agenda-ai-model-copy,
+        .agenda-ai-analysis-head > div,
+        .agenda-ai-review-head > div {
+            min-width: 0;
+        }
+
+        .agenda-ai-heading h2 {
+            margin-bottom: 3px;
+        }
+
+        .agenda-ai-heading p,
+        .agenda-ai-analysis-head p,
+        .agenda-ai-review-head p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 10px;
+            line-height: 1.45;
+        }
+
+        .agenda-ai-state {
+            flex: 0 0 auto;
+            padding: 6px 9px;
+            color: #a9bad0;
+            font-size: 9px;
+            font-weight: 850;
+            letter-spacing: .035em;
+            white-space: nowrap;
+            text-transform: uppercase;
+            border: 1px solid rgba(148, 163, 184, .17);
+            border-radius: 999px;
+            background: rgba(148, 163, 184, .07);
+        }
+
+        .agenda-ai-state.ready,
+        .agenda-ai-state.active {
+            color: #72f3ce;
+            border-color: rgba(45, 212, 191, .28);
+            background: rgba(45, 212, 191, .09);
+        }
+
+        .agenda-ai-state.active {
+            box-shadow: 0 0 18px rgba(45, 212, 191, .1);
+        }
+
+        .agenda-ai-state.warning {
+            color: #fbbf72;
+            border-color: rgba(251, 191, 114, .25);
+            background: rgba(251, 191, 114, .08);
+        }
+
+        .agenda-ai-state.error {
+            color: #fda4af;
+            border-color: rgba(251, 113, 133, .25);
+            background: rgba(251, 113, 133, .08);
+        }
+
+        .agenda-ai-model {
+            margin-top: 14px;
+            padding: 12px;
+            border: 1px solid rgba(148, 163, 184, .13);
+            border-radius: 15px;
+            background: rgba(10, 15, 29, .55);
+        }
+
+        .agenda-ai-model-main {
+            display: flex;
+            gap: 11px;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .agenda-ai-model-icon {
+            display: grid;
+            flex: 0 0 40px;
+            place-items: center;
+            width: 40px;
+            height: 40px;
+            color: #78f2d1;
+            border: 1px solid rgba(45, 212, 191, .22);
+            border-radius: 13px;
+            background: linear-gradient(145deg, rgba(124, 114, 255, .17), rgba(45, 212, 191, .11));
+        }
+
+        .agenda-ai-model-icon .icon {
+            width: 18px;
+            height: 18px;
+        }
+
+        .agenda-ai-model-copy {
+            display: grid;
+            gap: 3px;
+        }
+
+        .agenda-ai-model-copy strong,
+        .agenda-ai-model-copy span {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .agenda-ai-model-copy strong { font-size: 12px; }
+        .agenda-ai-model-copy span { color: var(--muted); font-size: 10px; }
+
+        .agenda-ai-model-actions {
+            display: flex;
+            flex: 0 0 auto;
+            gap: 7px;
+        }
+
+        .agenda-ai-model-actions button {
+            min-height: 34px;
+            padding: 7px 10px;
+            font-size: 10px;
+        }
+
+        .agenda-ai-danger-button {
+            color: #fda4af;
+            border-color: rgba(251, 113, 133, .23);
+            background: rgba(251, 113, 133, .08);
+        }
+
+        .agenda-ai-danger-button:hover:not(:disabled) {
+            color: #fecdd3;
+            border-color: rgba(251, 113, 133, .4);
+            background: rgba(251, 113, 133, .13);
+        }
+
+        .agenda-ai-download,
+        .agenda-ai-analysis-progress {
+            margin-top: 10px;
+            padding: 10px 12px;
+            border: 1px solid rgba(124, 114, 255, .16);
+            border-radius: 13px;
+            background: rgba(124, 114, 255, .045);
+        }
+
+        .agenda-ai-progress-meta {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            color: var(--muted);
+            font-size: 10px;
+        }
+
+        .agenda-ai-progress-meta strong {
+            overflow: hidden;
+            color: #c7d3e4;
+            font-weight: 750;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .agenda-ai-progress-track {
+            height: 6px;
+            margin-top: 8px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, .12);
+        }
+
+        .agenda-ai-progress-bar {
+            width: 0;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #7c72ff, #42d8d0, #45e69a);
+            box-shadow: 0 0 16px rgba(69, 230, 154, .22);
+            transition: width .3s ease;
+        }
+
+        .agenda-ai-progress-bar.indeterminate {
+            width: 35% !important;
+            animation: agendaAiIndeterminate 1.25s ease-in-out infinite;
+        }
+
+        @keyframes agendaAiIndeterminate {
+            from { transform: translateX(-110%); }
+            to { transform: translateX(300%); }
+        }
+
+        .agenda-ai-divider {
+            height: 1px;
+            margin: 14px 0;
+            background: linear-gradient(90deg, transparent, rgba(148, 163, 184, .16), transparent);
+        }
+
+        .agenda-ai-analysis-head .agenda-actions {
+            flex: 0 0 auto;
+        }
+
+        .agenda-ai-analysis-head .agenda-actions > button {
+            flex: 0 0 auto;
+            min-height: 35px;
+            padding: 7px 11px;
+            font-size: 10px;
+        }
+
+        .agenda-ai-analysis-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .agenda-ai-analysis-stat {
+            padding: 4px 7px;
+            color: var(--muted);
+            font-size: 9px;
+            border: 1px solid rgba(148, 163, 184, .13);
+            border-radius: 999px;
+            background: rgba(148, 163, 184, .055);
+        }
+
+        .agenda-ai-analysis-stat strong {
+            color: #dce6f4;
+        }
+
+        .agenda-ai-review-head {
+            margin-top: 14px;
+        }
+
+        .agenda-ai-review-count {
+            flex: 0 0 auto;
+            padding: 4px 8px;
+            color: #c4b5fd;
+            font-size: 9px;
+            font-weight: 850;
+            border: 1px solid rgba(124, 114, 255, .22);
+            border-radius: 999px;
+            background: rgba(124, 114, 255, .08);
+        }
+
+        .agenda-ai-review-list {
+            display: grid;
+            gap: 7px;
+            max-height: 245px;
+            margin-top: 9px;
+            overflow-y: auto;
+        }
+
+        .agenda-ai-review-row {
+            display: grid;
+            grid-template-columns: minmax(130px, .8fr) minmax(150px, 1fr) auto;
+            gap: 9px;
+            align-items: center;
+            padding: 9px 10px;
+            border: 1px solid rgba(148, 163, 184, .12);
+            border-radius: 12px;
+            background: rgba(9, 14, 27, .58);
+        }
+
+        .agenda-ai-review-person {
+            display: grid;
+            gap: 2px;
+            min-width: 0;
+        }
+
+        .agenda-ai-review-person strong,
+        .agenda-ai-review-person span {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .agenda-ai-review-person strong { font-size: 11px; }
+        .agenda-ai-review-person span { color: var(--muted); font-size: 9px; }
+
+        .agenda-ai-review-editor {
+            display: flex;
+            min-width: 0;
+            border: 1px solid rgba(124, 114, 255, .2);
+            border-radius: 10px;
+            background: rgba(19, 26, 45, .72);
+        }
+
+        .agenda-ai-review-editor input {
+            min-width: 0;
+            width: 100%;
+            padding: 8px 9px;
+            color: var(--text);
+            font-size: 11px;
+            border: 0;
+            outline: 0;
+            background: transparent;
+        }
+
+        .agenda-ai-estimate {
+            display: grid;
+            flex: 0 0 auto;
+            place-items: center;
+            min-width: 44px;
+            padding: 0 8px;
+            color: #78f2d1;
+            font-size: 9px;
+            font-weight: 850;
+            border-left: 1px solid rgba(124, 114, 255, .16);
+        }
+
+        .agenda-ai-review-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .agenda-ai-review-actions button {
+            display: grid;
+            place-items: center;
+            width: 31px;
+            min-width: 31px;
+            height: 31px;
+            padding: 0;
+            border-radius: 9px;
+        }
+
+        .agenda-ai-review-actions button .icon {
+            width: 13px;
+            height: 13px;
+        }
+
+        .agenda-ai-review-actions .approve { color: #72f3ce; }
+        .agenda-ai-review-actions .edit { color: #c4b5fd; }
+        .agenda-ai-review-actions .reject { color: #fda4af; }
+
+        .agenda-ai-empty {
+            padding: 12px;
+            color: var(--muted);
+            font-size: 10px;
+            text-align: center;
+            border: 1px dashed rgba(148, 163, 184, .14);
+            border-radius: 12px;
+        }
+
         .agenda-stats {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -6586,6 +6961,32 @@
             .agenda-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .agenda-contact-row { grid-template-columns: minmax(0, 1fr) auto; }
             .agenda-contact-meta { display: none; }
+            .agenda-ai-heading,
+            .agenda-ai-model,
+            .agenda-ai-analysis-head {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+            .agenda-ai-model-actions,
+            .agenda-ai-analysis-head .agenda-actions {
+                width: 100%;
+            }
+            .agenda-ai-model-actions button,
+            .agenda-ai-analysis-head .agenda-actions > button {
+                flex: 1 1 0;
+                justify-content: center;
+            }
+            .agenda-ai-review-row {
+                grid-template-columns: minmax(0, 1fr) auto;
+            }
+            .agenda-ai-review-editor {
+                grid-column: 1 / -1;
+                grid-row: 2;
+            }
+            .agenda-ai-review-actions {
+                grid-column: 2;
+                grid-row: 1;
+            }
             .agenda-history-state {
                 grid-template-columns: 42px minmax(0, 1fr);
             }
@@ -6593,6 +6994,1142 @@
                 grid-column: 1 / -1;
                 width: 100%;
                 justify-content: center;
+            }
+        }
+    </style>
+
+    <style id="eva-01-theme">
+        :root {
+            color-scheme: dark;
+            --bg: #09060f;
+            --sidebar: rgba(15, 8, 22, .97);
+            --sidebar-active: rgba(137, 75, 190, .22);
+            --surface: rgba(24, 13, 34, .96);
+            --surface-2: rgba(31, 17, 44, .97);
+            --surface-3: rgba(43, 23, 59, .98);
+            --border: rgba(185, 122, 229, .20);
+            --border-soft: rgba(185, 122, 229, .12);
+            --text: #fbf7ff;
+            --muted: #b4a5be;
+            --green: #98f353;
+            --green-dark: #69d832;
+            --blue: #9a5fd0;
+            --danger: #f06445;
+            --warning: #f0a34d;
+            --accent: #8b4dcc;
+            --accent-bright: #b56fe8;
+            --accent-deep: #4d246d;
+            --accent-soft: rgba(139, 77, 204, .20);
+            --cyan-soft: rgba(152, 243, 83, .14);
+            --eva-orange: #e8683d;
+            --eva-ink: #09060f;
+            --shadow: 0 24px 68px rgba(2, 0, 5, .46);
+            --glow: 0 0 0 1px rgba(152, 243, 83, .10),
+                0 0 34px rgba(139, 77, 204, .13);
+        }
+
+        html {
+            scrollbar-color: rgba(181, 111, 232, .48) rgba(12, 7, 18, .45);
+        }
+
+        ::selection {
+            background: rgba(152, 243, 83, .30);
+            color: #fff;
+        }
+
+        *:focus-visible {
+            outline-color: rgba(152, 243, 83, .88) !important;
+        }
+
+        body {
+            background:
+                radial-gradient(circle at 15% 10%, rgba(139, 77, 204, .24), transparent 27%),
+                radial-gradient(circle at 88% 14%, rgba(152, 243, 83, .10), transparent 24%),
+                radial-gradient(circle at 72% 94%, rgba(232, 104, 61, .075), transparent 25%),
+                linear-gradient(150deg, #09060f 0%, #100817 48%, #08050d 100%) !important;
+        }
+
+        body::before {
+            opacity: .16 !important;
+            background-image:
+                linear-gradient(rgba(181, 111, 232, .055) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(181, 111, 232, .055) 1px, transparent 1px) !important;
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, rgba(22, 11, 31, .99), rgba(10, 6, 15, .99)) !important;
+            border-right-color: rgba(181, 111, 232, .16) !important;
+            box-shadow: inset -1px 0 rgba(152, 243, 83, .035), 8px 0 30px rgba(0, 0, 0, .18) !important;
+        }
+
+        .brand {
+            border-color: rgba(181, 111, 232, .20) !important;
+            background: linear-gradient(135deg, rgba(139, 77, 204, .24), rgba(152, 243, 83, .075)) !important;
+        }
+
+        .brand-icon {
+            border-color: rgba(181, 111, 232, .42) !important;
+            padding: 0 !important;
+            overflow: hidden;
+            background: #09060f !important;
+            color: #fff !important;
+            box-shadow: 0 12px 30px rgba(139, 77, 204, .30) !important;
+        }
+
+        .brand-icon img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: inherit;
+        }
+
+        .brand-name {
+            font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+            font-weight: 500 !important;
+            letter-spacing: .065em !important;
+            text-transform: uppercase;
+        }
+
+        .brand-subtitle {
+            color: var(--green) !important;
+            letter-spacing: .18em !important;
+        }
+
+        .brand::after,
+        .nav-count {
+            border-color: rgba(181, 111, 232, .18) !important;
+            background: rgba(181, 111, 232, .11) !important;
+            color: #e6d6f2 !important;
+        }
+
+        .nav-button {
+            color: #c0b0ca !important;
+        }
+
+        .nav-button:hover {
+            border-color: rgba(181, 111, 232, .12) !important;
+            background: rgba(139, 77, 204, .10) !important;
+            color: #fff !important;
+        }
+
+        .nav-button.active {
+            border-color: rgba(181, 111, 232, .34) !important;
+            background: linear-gradient(100deg, rgba(139, 77, 204, .32), rgba(78, 36, 109, .22)) !important;
+            color: #fff !important;
+            box-shadow: inset 3px 0 var(--green), 0 12px 28px rgba(41, 15, 57, .30) !important;
+        }
+
+        .nav-button.active .icon,
+        .update-version,
+        .line-status,
+        .agenda-eyebrow {
+            color: var(--green) !important;
+            filter: drop-shadow(0 0 7px rgba(152, 243, 83, .24));
+        }
+
+        .update-panel,
+        .topbar-actions,
+        .line-management-toolbar,
+        .line-view-switch {
+            border-color: rgba(181, 111, 232, .15) !important;
+            background: linear-gradient(145deg, rgba(34, 18, 47, .94), rgba(17, 9, 25, .94)) !important;
+        }
+
+        .main::before {
+            background: linear-gradient(to bottom, rgba(9, 6, 15, .94), rgba(9, 6, 15, .62), transparent) !important;
+        }
+
+        .topbar h1::after,
+        .update-progress-bar,
+        .progress-bar,
+        .deletion-progress-fill,
+        .pacing-progress-fill,
+        .agenda-progress-bar,
+        .agenda-ai-progress-bar {
+            background: linear-gradient(90deg, #8b4dcc 0%, #b56fe8 42%, #98f353 100%) !important;
+            box-shadow: 0 0 20px rgba(152, 243, 83, .18) !important;
+        }
+
+        :is(
+            .panel,
+            .stat-card,
+            .program-card,
+            .line-card,
+            .connected-line-card,
+            .pending-line-card,
+            .active-group-card,
+            .active-metric-card,
+            .result-box,
+            .selector-line,
+            .selected-lines-box,
+            .line-selector-panel,
+            .upload-zone,
+            .pacing-block,
+            .settings-control-card,
+            .settings-toggle-card,
+            .agenda-ai-panel,
+            .agenda-progress-card,
+            .agenda-stat,
+            .agenda-contact-row,
+            .agenda-history-state,
+            .agenda-google-state,
+            .agenda-security-note
+        ) {
+            border-color: rgba(181, 111, 232, .16) !important;
+            background: linear-gradient(155deg, rgba(31, 17, 44, .97), rgba(16, 9, 24, .98)) !important;
+            box-shadow: inset 0 1px rgba(255, 255, 255, .035), 0 20px 46px rgba(1, 0, 3, .20) !important;
+        }
+
+        :is(.program-card, .line-card, .connected-line-card, .pending-line-card, .active-group-card):hover {
+            border-color: rgba(152, 243, 83, .26) !important;
+            box-shadow: 0 18px 42px rgba(0, 0, 0, .30), 0 0 0 1px rgba(139, 77, 204, .12) !important;
+        }
+
+        .connected-line-card::before,
+        .pending-line-card::before {
+            background: linear-gradient(180deg, #98f353, #8b4dcc) !important;
+            box-shadow: 0 0 14px rgba(152, 243, 83, .24) !important;
+        }
+
+        .pending-line-card[data-state="esperando_qr"]::before {
+            background: linear-gradient(180deg, #b56fe8, #98f353) !important;
+        }
+
+        .pending-line-card[data-state="iniciando"]::before,
+        .pending-line-card[data-state="reconectando"]::before {
+            background: linear-gradient(180deg, #f0a34d, #8b4dcc) !important;
+        }
+
+        .connected-line-avatar,
+        .pending-line-avatar,
+        .agenda-picker-avatar,
+        .active-metric-icon,
+        .pacing-mode-icon,
+        .agenda-keywords-icon,
+        .agenda-ai-model-icon {
+            border-color: rgba(181, 111, 232, .30) !important;
+            background: linear-gradient(145deg, rgba(139, 77, 204, .34), rgba(152, 243, 83, .10)) !important;
+            color: #f5eaff !important;
+        }
+
+        .active-metric-icon.danger {
+            border-color: rgba(240, 100, 69, .32) !important;
+            background: rgba(240, 100, 69, .12) !important;
+            color: #ff9c7f !important;
+        }
+
+        :is(
+            .input,
+            .textarea,
+            select,
+            .agenda-ai-review-editor,
+            .agenda-ai-review-editor input,
+            .line-order-button,
+            .line-order-direction,
+            .agenda-picker-button
+        ) {
+            border-color: rgba(181, 111, 232, .17) !important;
+            background: rgba(12, 7, 18, .78) !important;
+            color: var(--text) !important;
+        }
+
+        :is(.input, .textarea, select, .agenda-ai-review-editor input):hover {
+            border-color: rgba(181, 111, 232, .34) !important;
+        }
+
+        :is(.input, .textarea, select, .agenda-ai-review-editor input):focus {
+            border-color: rgba(152, 243, 83, .68) !important;
+            background: rgba(15, 8, 22, .92) !important;
+            box-shadow: 0 0 0 4px rgba(152, 243, 83, .09), 0 0 25px rgba(139, 77, 204, .11) !important;
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: #7d6d88 !important;
+        }
+
+        select option {
+            background: #1b1025;
+            color: #fbf7ff;
+        }
+
+        .primary-button,
+        .fab,
+        .pending-qr-button,
+        #modal-editar #btn-guardar-edicion,
+        .confirmation-confirm:not(.danger) {
+            border-color: rgba(193, 255, 146, .32) !important;
+            background: linear-gradient(135deg, #a7fa68, #78df39) !important;
+            color: #111608 !important;
+            box-shadow: 0 14px 34px rgba(152, 243, 83, .20), inset 0 1px rgba(255, 255, 255, .42) !important;
+        }
+
+        .primary-button:hover,
+        .fab:hover,
+        .pending-qr-button:hover,
+        #modal-editar #btn-guardar-edicion:hover {
+            background: linear-gradient(135deg, #bcff85, #8aea48) !important;
+            box-shadow: 0 18px 42px rgba(152, 243, 83, .28), 0 0 0 1px rgba(152, 243, 83, .16) !important;
+        }
+
+        :is(
+            .secondary-button,
+            .ghost-button,
+            .small-secondary,
+            .view-button,
+            .line-view-button,
+            .update-button,
+            .icon-button
+        ) {
+            border-color: rgba(181, 111, 232, .16) !important;
+            background: rgba(139, 77, 204, .085) !important;
+            color: #dfd2e8 !important;
+        }
+
+        :is(
+            .secondary-button,
+            .ghost-button,
+            .small-secondary,
+            .view-button,
+            .line-view-button,
+            .update-button,
+            .icon-button
+        ):hover {
+            border-color: rgba(181, 111, 232, .34) !important;
+            background: rgba(139, 77, 204, .17) !important;
+            color: #fff !important;
+        }
+
+        .view-button.active,
+        .line-view-button.active,
+        .line-order-option.active,
+        .agenda-picker-option.active,
+        .pacing-mode-option > input:checked + .pacing-mode-card,
+        .weekday-picker input:checked + span {
+            border-color: rgba(152, 243, 83, .30) !important;
+            background: linear-gradient(135deg, rgba(139, 77, 204, .32), rgba(152, 243, 83, .11)) !important;
+            color: #fff !important;
+            box-shadow: inset 0 1px rgba(255, 255, 255, .06) !important;
+        }
+
+        .btn-edit,
+        .connected-line-actions .btn-editar-linea,
+        .agenda-ai-review-actions .edit {
+            border-color: rgba(181, 111, 232, .32) !important;
+            background: linear-gradient(135deg, #8b4dcc, #63328f) !important;
+            color: #fff !important;
+            box-shadow: 0 11px 26px rgba(139, 77, 204, .20) !important;
+        }
+
+        .danger-button,
+        .small-danger,
+        .btn-delete,
+        .agenda-ai-danger-button,
+        .confirmation-confirm.danger,
+        .agenda-ai-review-actions .reject {
+            border-color: rgba(240, 100, 69, .34) !important;
+            background: linear-gradient(135deg, rgba(115, 38, 36, .96), rgba(78, 25, 31, .98)) !important;
+            color: #ffb09a !important;
+            box-shadow: 0 10px 26px rgba(100, 29, 28, .18) !important;
+        }
+
+        .danger-button:hover,
+        .small-danger:hover,
+        .btn-delete:hover,
+        .agenda-ai-danger-button:hover:not(:disabled),
+        .confirmation-confirm.danger:hover {
+            border-color: rgba(255, 137, 105, .54) !important;
+            background: linear-gradient(135deg, #a94138, #78302f) !important;
+            color: #fff !important;
+        }
+
+        .warning-button,
+        .btn-habilitar-publicaciones {
+            border-color: rgba(240, 163, 77, .36) !important;
+            background: linear-gradient(135deg, #f0a34d, #d8753e) !important;
+            color: #241006 !important;
+        }
+
+        :is(
+            .connected-state-pill,
+            .active-line-status,
+            .agenda-contact-status.done,
+            .agenda-ai-state.ready,
+            .agenda-ai-state.active,
+            .deletion-status-badge.success
+        ) {
+            border-color: rgba(152, 243, 83, .28) !important;
+            background: rgba(152, 243, 83, .095) !important;
+            color: #b8ff82 !important;
+        }
+
+        :is(
+            .connected-state-pill.warning,
+            .pending-line-status-pill,
+            .history-status.warning,
+            .agenda-ai-state.warning,
+            .toast.warning
+        ) {
+            border-color: rgba(240, 163, 77, .34) !important;
+            background: rgba(240, 163, 77, .10) !important;
+            color: #ffc581 !important;
+        }
+
+        :is(
+            .active-line-status.error,
+            .deletion-status-badge.error,
+            .agenda-contact-status.error,
+            .agenda-ai-state.error,
+            .pacing-progress-chip.error
+        ) {
+            border-color: rgba(240, 100, 69, .34) !important;
+            background: rgba(240, 100, 69, .10) !important;
+            color: #ff9c7f !important;
+        }
+
+        .audience-pill,
+        .connected-line-rank,
+        .pending-line-order,
+        .active-group-count,
+        .agenda-ai-review-count,
+        .agenda-ai-estimate {
+            border-color: rgba(181, 111, 232, .25) !important;
+            background: rgba(139, 77, 204, .13) !important;
+            color: #d7b4f2 !important;
+        }
+
+        .line-order-menu,
+        .agenda-picker-menu,
+        .tag-picker,
+        .dropdown-menu {
+            border-color: rgba(181, 111, 232, .20) !important;
+            background: rgba(20, 11, 29, .985) !important;
+            box-shadow: 0 26px 70px rgba(0, 0, 0, .52), inset 0 1px rgba(255, 255, 255, .035) !important;
+        }
+
+        .line-order-option:hover,
+        .agenda-picker-option:hover,
+        .tag-option:hover {
+            background: rgba(139, 77, 204, .14) !important;
+        }
+
+        .line-order-option-mark,
+        .pacing-mode-check {
+            border-color: rgba(181, 111, 232, .32) !important;
+            background: rgba(78, 36, 109, .34) !important;
+        }
+
+        .line-order-option.active .line-order-option-mark,
+        .pacing-mode-option > input:checked + .pacing-mode-card .pacing-mode-check,
+        .toggle-field input:checked + .toggle-control {
+            border-color: rgba(152, 243, 83, .44) !important;
+            background: linear-gradient(135deg, #98f353, #69d832) !important;
+        }
+
+        .check-all input,
+        .line-check,
+        input[type="checkbox"],
+        input[type="radio"] {
+            accent-color: var(--green);
+        }
+
+        .check-all input:checked,
+        .line-check:checked,
+        .check-all input:indeterminate,
+        .line-check:indeterminate {
+            border-color: var(--green) !important;
+            background: var(--green) !important;
+            color: #101508 !important;
+        }
+
+        .selector-line:has(.line-check:checked) {
+            border-color: rgba(152, 243, 83, .30) !important;
+            background: linear-gradient(135deg, rgba(139, 77, 204, .18), rgba(152, 243, 83, .075)) !important;
+        }
+
+        .range-row input[type="range"]::-webkit-slider-runnable-track,
+        .agenda-ai-progress-track,
+        .agenda-progress-track,
+        .progress-track,
+        .update-progress {
+            background: rgba(181, 111, 232, .12) !important;
+        }
+
+        .range-row input[type="range"]::-webkit-slider-thumb {
+            border-color: #d9ffbd !important;
+            background: var(--green) !important;
+            box-shadow: 0 0 0 4px rgba(152, 243, 83, .12), 0 0 18px rgba(152, 243, 83, .22) !important;
+        }
+
+        .modal,
+        .confirmation-overlay,
+        .qr-line-modal {
+            background: rgba(5, 2, 8, .78) !important;
+            backdrop-filter: blur(12px) saturate(118%);
+        }
+
+        .modal-card,
+        .confirmation-card,
+        .qr-line-modal-card {
+            border-color: rgba(181, 111, 232, .23) !important;
+            background:
+                radial-gradient(circle at 12% 0%, rgba(139, 77, 204, .18), transparent 34%),
+                linear-gradient(155deg, rgba(32, 17, 44, .99), rgba(12, 7, 18, .995)) !important;
+            box-shadow: 0 40px 110px rgba(0, 0, 0, .64), inset 0 1px rgba(255, 255, 255, .05) !important;
+        }
+
+        .qr-line-modal-image {
+            border-color: rgba(152, 243, 83, .44) !important;
+            background: #fff !important;
+            box-shadow: 0 0 0 7px rgba(139, 77, 204, .18), 0 24px 60px rgba(0, 0, 0, .42) !important;
+        }
+
+        .toast {
+            border-color: rgba(181, 111, 232, .22) !important;
+            background: rgba(25, 13, 35, .97) !important;
+            color: #f8f1fc !important;
+            box-shadow: 0 24px 65px rgba(0, 0, 0, .48) !important;
+        }
+
+        .agenda-ai-model,
+        .agenda-ai-analysis-stat,
+        .agenda-ai-review-row,
+        .agenda-keywords-example,
+        .history-failure-item,
+        .connected-health-item,
+        .pacing-mode-card,
+        .pacing-note,
+        .middleware-alert,
+        .publication-review-notice {
+            border-color: rgba(181, 111, 232, .15) !important;
+            background: rgba(13, 7, 19, .58) !important;
+        }
+
+        .agenda-ai-review-actions .approve {
+            border-color: rgba(152, 243, 83, .30) !important;
+            background: rgba(152, 243, 83, .12) !important;
+            color: #baff87 !important;
+        }
+
+        .agenda-history-ring {
+            --history-color: var(--accent-bright) !important;
+        }
+
+        .agenda-history-ring .track {
+            stroke: rgba(181, 111, 232, .16) !important;
+        }
+
+        .agenda-history-ring[data-state="sincronizando"],
+        .agenda-history-ring[data-state="esperando_qr"] {
+            --history-color: var(--green) !important;
+        }
+
+        .agenda-history-ring[data-state="en_cola"],
+        .agenda-history-ring[data-state="pendiente"] {
+            --history-color: var(--accent-bright) !important;
+        }
+
+        .agenda-history-ring[data-state="lista"] {
+            --history-color: var(--green) !important;
+        }
+
+        .agenda-history-ring[data-state="pausada"],
+        .agenda-history-ring[data-state="parcial"] {
+            --history-color: var(--warning) !important;
+        }
+
+        .agenda-empty,
+        .active-empty-state,
+        .empty-state {
+            border-color: rgba(181, 111, 232, .16) !important;
+            background:
+                radial-gradient(circle at 50% 25%, rgba(139, 77, 204, .12), transparent 38%),
+                rgba(13, 7, 19, .48) !important;
+            color: #907f9b !important;
+        }
+
+        .agenda-empty .icon,
+        .empty-state .icon {
+            color: var(--accent-bright) !important;
+            filter: drop-shadow(0 0 10px rgba(181, 111, 232, .25));
+        }
+
+        #modal-editar .modal-card {
+            border-color: rgba(181, 111, 232, .24) !important;
+            background:
+                radial-gradient(circle at 88% 7%, rgba(139, 77, 204, .20), transparent 31%),
+                linear-gradient(155deg, #21112f 0%, #0e0815 100%) !important;
+            box-shadow: 0 28px 75px rgba(0, 0, 0, .52) !important;
+        }
+
+        #modal-editar .modal-actions {
+            border-color: rgba(181, 111, 232, .18) !important;
+            background:
+                radial-gradient(circle at 50% 0%, rgba(152, 243, 83, .07), transparent 58%),
+                linear-gradient(180deg, rgba(33, 17, 46, .99), rgba(16, 9, 23, .995)) !important;
+        }
+
+        #modal-editar #btn-cancelar-edicion {
+            border-color: rgba(181, 111, 232, .17) !important;
+            background: rgba(139, 77, 204, .09) !important;
+            color: #e1d4e9 !important;
+        }
+
+        #modal-editar #btn-cancelar-edicion:hover {
+            border-color: rgba(181, 111, 232, .32) !important;
+            background: rgba(139, 77, 204, .17) !important;
+        }
+
+        .active-line-id,
+        .pending-line-chip {
+            border-color: rgba(181, 111, 232, .21) !important;
+            background: rgba(139, 77, 204, .10) !important;
+            color: #d8b9ef !important;
+        }
+
+        .pending-line-status-pill.qr {
+            border-color: rgba(152, 243, 83, .27) !important;
+            background: rgba(152, 243, 83, .095) !important;
+            color: #b9ff85 !important;
+        }
+
+        .pending-line-status-pill.progress {
+            border-color: rgba(181, 111, 232, .28) !important;
+            background: rgba(139, 77, 204, .13) !important;
+            color: #d8b9ef !important;
+        }
+
+        .pending-line-chip.critical,
+        .history-failure-item,
+        .reconnect-detail.critical {
+            border-color: rgba(240, 100, 69, .26) !important;
+            background: rgba(240, 100, 69, .08) !important;
+            color: #ffab94 !important;
+        }
+
+        .middleware-alert,
+        .publication-review-notice {
+            border-color: rgba(240, 163, 77, .28) !important;
+            background: linear-gradient(135deg, rgba(139, 77, 204, .10), rgba(240, 163, 77, .075)) !important;
+        }
+
+        .toast.success {
+            border-color: rgba(152, 243, 83, .35) !important;
+            box-shadow: inset 3px 0 var(--green), 0 24px 65px rgba(0, 0, 0, .48) !important;
+        }
+
+        .toast.error {
+            border-color: rgba(240, 100, 69, .36) !important;
+            box-shadow: inset 3px 0 var(--danger), 0 24px 65px rgba(0, 0, 0, .48) !important;
+        }
+
+        .toast.warning {
+            box-shadow: inset 3px 0 var(--warning), 0 24px 65px rgba(0, 0, 0, .48) !important;
+        }
+
+        #agenda-palabras-mensaje[data-tone="error"] {
+            color: #ff9c7f !important;
+        }
+
+        #agenda-palabras-mensaje[data-tone="info"] {
+            color: #d7b4f2 !important;
+        }
+
+        .chip.success,
+        .history-status.success,
+        .activity-banner.active,
+        .deletion-status-badge.active,
+        .deletion-status-badge.success {
+            border-color: rgba(152, 243, 83, .27) !important;
+            background: rgba(152, 243, 83, .09) !important;
+            color: #b9ff85 !important;
+        }
+
+        .stat-card::after {
+            background: radial-gradient(circle, rgba(139, 77, 204, .20), transparent 68%) !important;
+        }
+
+        .stat-icon,
+        .upload-icon,
+        .empty-state-icon,
+        .summary-icon,
+        .activity-icon,
+        .check-all .icon,
+        .agenda-picker-button .icon,
+        .agenda-security-note .icon,
+        .confirmation-card[data-tone="primary"] .confirmation-icon {
+            border-color: rgba(181, 111, 232, .27) !important;
+            background: linear-gradient(145deg, rgba(139, 77, 204, .25), rgba(152, 243, 83, .09)) !important;
+            color: var(--green) !important;
+        }
+
+        .upload-zone:hover,
+        .tag-picker-button:hover,
+        .line-order-button:hover,
+        .line-order-picker.open .line-order-button,
+        .line-order-direction:hover,
+        .pacing-mode-option:hover .pacing-mode-card,
+        .pacing-mode-option > input:focus-visible + .pacing-mode-card {
+            border-color: rgba(152, 243, 83, .28) !important;
+            background: linear-gradient(135deg, rgba(139, 77, 204, .17), rgba(152, 243, 83, .07)) !important;
+        }
+
+        .program-actions .btn-run,
+        .edit-file-button {
+            border-color: rgba(152, 243, 83, .26) !important;
+            background: linear-gradient(135deg, rgba(139, 77, 204, .24), rgba(152, 243, 83, .11)) !important;
+            color: #e8ffda !important;
+        }
+
+        .program-actions .btn-run:hover,
+        .edit-file-button:hover {
+            border-color: rgba(152, 243, 83, .42) !important;
+            background: linear-gradient(135deg, rgba(139, 77, 204, .34), rgba(152, 243, 83, .17)) !important;
+        }
+
+        .edit-image-panel,
+        .all-days-check,
+        .agenda-ai-download,
+        .agenda-ai-analysis-progress {
+            border-color: rgba(181, 111, 232, .17) !important;
+            background: linear-gradient(145deg, rgba(31, 17, 44, .82), rgba(13, 7, 19, .72)) !important;
+        }
+
+        .edit-image-panel::after {
+            background: radial-gradient(circle, rgba(152, 243, 83, .11), transparent 69%) !important;
+        }
+
+        .edit-image-eyebrow {
+            color: var(--green) !important;
+        }
+
+        .edit-file-name::before,
+        .audience-activity-summary::before {
+            background-color: var(--green) !important;
+        }
+
+        .all-days-check:hover,
+        .weekday-picker label:hover span {
+            border-color: rgba(181, 111, 232, .31) !important;
+            background: rgba(139, 77, 204, .13) !important;
+        }
+
+        .all-days-check input:checked + .all-days-box,
+        .all-days-check input:indeterminate + .all-days-box {
+            border-color: rgba(152, 243, 83, .46) !important;
+            background: linear-gradient(135deg, #98f353, #69d832) !important;
+            color: #101508 !important;
+        }
+
+        .line-order-option.active .line-order-option-mark::after,
+        .pacing-mode-option > input:checked + .pacing-mode-card .pacing-mode-check::after {
+            border-color: #101508 !important;
+        }
+
+        .agenda-ai-download,
+        .agenda-ai-analysis-progress {
+            box-shadow: inset 0 1px rgba(255, 255, 255, .035) !important;
+        }
+
+        .muted,
+        .helper,
+        .field-hint,
+        .agenda-ai-heading p,
+        .agenda-ai-analysis-head p,
+        .agenda-ai-review-head p {
+            color: var(--muted) !important;
+        }
+    </style>
+
+    <style id="zeroone-desktop-shell">
+        :root {
+            --zeroone-sidebar-expanded: 224px;
+            --zeroone-sidebar-collapsed: 72px;
+            --zeroone-sidebar-width: var(--zeroone-sidebar-expanded);
+        }
+
+        body {
+            background: linear-gradient(180deg, #0b0710 0%, #100a16 100%) !important;
+        }
+
+        body::before {
+            display: none !important;
+        }
+
+        .app-shell {
+            grid-template-columns: var(--zeroone-sidebar-width) minmax(0, 1fr) !important;
+            transition: grid-template-columns .16s ease;
+        }
+
+        .sidebar {
+            overflow: hidden;
+            padding: 12px 10px 14px !important;
+            border-right: 1px solid rgba(255, 255, 255, .075) !important;
+            background: #100a17 !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            user-select: none;
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            min-height: 46px;
+            margin: 0 2px 12px;
+            padding: 0 2px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, .065);
+        }
+
+        .brand {
+            flex: 1 1 auto;
+            min-width: 0;
+            min-height: 34px;
+            margin: 0 !important;
+            padding: 0 8px !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        .brand::after {
+            display: none !important;
+            content: none !important;
+        }
+
+        .brand-name {
+            overflow: hidden;
+            color: #fbf8ff !important;
+            font-family: "Stadium", Bahnschrift, "Arial Narrow", "Segoe UI", sans-serif !important;
+            font-size: 22px !important;
+            font-weight: 400 !important;
+            letter-spacing: .045em !important;
+            line-height: 1 !important;
+            text-overflow: clip;
+            text-transform: none !important;
+            white-space: nowrap;
+            transition: opacity .12s ease, width .16s ease;
+        }
+
+        .sidebar-toggle {
+            display: grid;
+            flex: 0 0 34px;
+            place-items: center;
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            border: 1px solid rgba(181, 111, 232, .20);
+            border-radius: 7px;
+            background: rgba(139, 77, 204, .10);
+            color: #cdb7dc;
+            cursor: pointer;
+            transition: border-color .14s ease, background .14s ease, color .14s ease;
+        }
+
+        .sidebar-toggle:hover {
+            border-color: rgba(152, 243, 83, .30);
+            background: rgba(152, 243, 83, .075);
+            color: var(--green);
+        }
+
+        .sidebar-toggle .icon {
+            width: 17px;
+            height: 17px;
+            transition: transform .16s ease;
+        }
+
+        .nav {
+            gap: 3px !important;
+        }
+
+        .nav-button {
+            position: relative;
+            gap: 10px !important;
+            min-height: 40px !important;
+            padding: 0 11px !important;
+            border-radius: 7px !important;
+            font-size: 12.5px !important;
+            transition: border-color .14s ease, background .14s ease, color .14s ease !important;
+        }
+
+        .nav-button:hover {
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .nav-button.active {
+            background: rgba(139, 77, 204, .22) !important;
+            box-shadow: inset 2px 0 var(--green) !important;
+        }
+
+        .nav-button .icon {
+            width: 18px;
+            height: 18px;
+        }
+
+        .nav-label {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            transition: opacity .12s ease;
+        }
+
+        .nav-count {
+            flex: 0 0 auto;
+            min-width: 19px !important;
+            height: 19px !important;
+            margin-left: auto !important;
+            padding: 0 5px !important;
+        }
+
+        .update-panel {
+            border-radius: 8px !important;
+            background: rgba(28, 16, 39, .84) !important;
+            box-shadow: none !important;
+        }
+
+        .agenda-stat.ready strong,
+        .agenda-stat.mutual strong {
+            width: fit-content;
+            padding: 0 !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        .agenda-stat.ready strong {
+            color: var(--green) !important;
+        }
+
+        .agenda-stat.mutual strong {
+            color: #c084fc !important;
+        }
+
+        .main {
+            padding: 0 18px 82px !important;
+            scrollbar-gutter: stable;
+        }
+
+        .main::before {
+            display: none !important;
+        }
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 60;
+            min-height: 58px;
+            margin: 0 -18px 18px !important;
+            padding: 0 18px !important;
+            border-bottom: 1px solid rgba(255, 255, 255, .075);
+            background: rgba(11, 7, 16, .94);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            user-select: none;
+        }
+
+        .topbar h1 {
+            font-size: 20px !important;
+            font-weight: 760 !important;
+            letter-spacing: -.02em !important;
+        }
+
+        .topbar h1::after {
+            display: none !important;
+        }
+
+        .topbar-actions {
+            padding: 0 !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        .view-button,
+        .line-view-button,
+        .line-order-button,
+        .line-order-direction,
+        .secondary-button,
+        .primary-button {
+            border-radius: 7px !important;
+        }
+
+        :is(
+            .panel,
+            .stat-card,
+            .program-card,
+            .line-card,
+            .connected-line-card,
+            .pending-line-card,
+            .active-group-card,
+            .active-metric-card,
+            .result-box,
+            .selector-line,
+            .selected-lines-box,
+            .line-selector-panel,
+            .upload-zone,
+            .pacing-block,
+            .settings-control-card,
+            .settings-toggle-card,
+            .agenda-ai-panel,
+            .agenda-progress-card,
+            .agenda-stat,
+            .agenda-contact-row,
+            .agenda-history-state,
+            .agenda-google-state,
+            .agenda-security-note
+        ) {
+            border-radius: 11px !important;
+            background: #1b1025 !important;
+            box-shadow: inset 0 1px rgba(255, 255, 255, .025), 0 8px 24px rgba(0, 0, 0, .16) !important;
+        }
+
+        :is(
+            .program-card,
+            .line-card,
+            .connected-line-card,
+            .pending-line-card,
+            .active-group-card
+        ):hover {
+            transform: none !important;
+            box-shadow: inset 0 1px rgba(255, 255, 255, .03), 0 8px 24px rgba(0, 0, 0, .18) !important;
+        }
+
+        .fab {
+            width: 50px !important;
+            height: 50px !important;
+            border-radius: 10px !important;
+            box-shadow: 0 10px 26px rgba(0, 0, 0, .34) !important;
+        }
+
+        :is(
+            input:not([type="checkbox"]):not([type="radio"]),
+            textarea,
+            select
+        ) {
+            border-radius: 7px !important;
+            box-shadow: none !important;
+        }
+
+        :is(
+            .view-button,
+            .line-view-button,
+            .line-order-button,
+            .line-order-direction,
+            .secondary-button,
+            .primary-button,
+            .update-button
+        ) {
+            box-shadow: none !important;
+        }
+
+        @media (min-width: 681px) {
+            .app-shell.sidebar-collapsed {
+                --zeroone-sidebar-width: var(--zeroone-sidebar-collapsed);
+            }
+
+            .sidebar-collapsed .sidebar-header {
+                justify-content: center;
+                padding-inline: 0;
+            }
+
+            .sidebar-collapsed .brand {
+                flex: 0 1 0;
+                width: 0;
+                min-width: 0;
+                padding: 0 !important;
+                opacity: 0;
+                pointer-events: none;
+            }
+
+            .sidebar-collapsed .brand-name,
+            .sidebar-collapsed .nav-label {
+                width: 0;
+                opacity: 0;
+                pointer-events: none;
+            }
+
+            .sidebar-collapsed .sidebar-toggle .icon {
+                transform: rotate(180deg);
+            }
+
+            .sidebar-collapsed .nav-button {
+                justify-content: center;
+                width: 44px;
+                margin-inline: auto;
+                padding: 0 !important;
+                gap: 0 !important;
+            }
+
+            .sidebar-collapsed .nav-count {
+                position: absolute;
+                top: 2px;
+                right: 0;
+                min-width: 15px !important;
+                height: 15px !important;
+                margin: 0 !important;
+                padding: 0 3px !important;
+                font-size: 8px !important;
+                box-shadow: 0 0 0 2px #100a17;
+            }
+
+            .sidebar-collapsed .update-panel {
+                width: 44px;
+                margin-inline: auto;
+                padding: 0 !important;
+                border: 0 !important;
+                background: transparent !important;
+            }
+
+            .sidebar-collapsed :is(
+                .update-panel-header,
+                .update-message,
+                .update-progress,
+                .sidebar-version
+            ) {
+                display: none !important;
+            }
+
+            .sidebar-collapsed .update-button {
+                justify-content: center;
+                width: 44px;
+                min-height: 40px;
+                padding: 0 !important;
+                border-radius: 7px !important;
+            }
+
+            .sidebar-collapsed .update-button > span {
+                display: none;
+            }
+        }
+
+        @media (max-width: 680px) {
+            .sidebar-toggle {
+                display: none;
+            }
+
+            .sidebar-header {
+                min-height: 40px;
+                margin-bottom: 8px;
+                padding-bottom: 6px;
+            }
+
+            .brand {
+                justify-content: center;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .app-shell,
+            .brand-name,
+            .nav-label,
+            .sidebar-toggle .icon {
+                transition: none !important;
             }
         }
     </style>
@@ -6624,6 +8161,7 @@
         <symbol id="i-install" viewBox="0 0 24 24"><path d="M12 3v10"/><path d="m8 9 4 4 4-4"/><rect x="4" y="16" width="16" height="5" rx="2"/></symbol>
         <symbol id="i-tag" viewBox="0 0 24 24"><path d="M20 13 13 20a2 2 0 0 1-2.8 0L4 13.8V4h9.8L20 10.2a2 2 0 0 1 0 2.8z"/><circle cx="8.5" cy="8.5" r="1.5"/></symbol>
         <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+        <symbol id="i-sidebar-toggle" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 9l-3 3 3 3"/></symbol>
         <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 6v5h-5"/><path d="M4 18v-5h5"/><path d="M6.1 9a7 7 0 0 1 11.7-2.6L20 11M4 13l2.2 4.6A7 7 0 0 0 17.9 15"/></symbol>
         <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 15H6L5 6"/><path d="M10 11v5M14 11v5"/></symbol>
         <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z"/></symbol>
@@ -6650,43 +8188,54 @@
     </svg>
 
     <div class="app-shell">
-        <aside class="sidebar">
-            <div class="brand">
-                <span class="brand-icon"><svg class="icon"><use href="#i-phone"></use></svg></span>
-                <span class="brand-copy">
-                    <span class="brand-name">AutoStatues</span>
-                    <span class="brand-subtitle">Studio</span>
-                </span>
+        <aside id="app-sidebar" class="sidebar" aria-label="Navegación principal">
+            <div class="sidebar-header">
+                <div class="brand" aria-label="ZeroOne">
+                    <span class="brand-name">ZeroOne</span>
+                </div>
+                <button
+                    type="button"
+                    id="btn-toggle-sidebar"
+                    class="sidebar-toggle"
+                    title="Contraer barra lateral"
+                    aria-label="Contraer barra lateral"
+                    aria-controls="app-sidebar"
+                    aria-expanded="true"
+                >
+                    <svg class="icon"><use href="#i-sidebar-toggle"></use></svg>
+                </button>
             </div>
 
             <nav class="nav">
-                <button class="nav-button active" data-section="dashboard">
+                <button class="nav-button active" data-section="dashboard" title="Inicio" aria-label="Inicio">
                     <svg class="icon"><use href="#i-dashboard"></use></svg>
-                    <span>Dashboard</span>
+                    <span class="nav-label">Inicio</span>
                 </button>
-                <button class="nav-button" data-section="estados">
+                <button class="nav-button" data-section="estados" title="Estados" aria-label="Estados">
                     <svg class="icon"><use href="#i-image"></use></svg>
-                    <span>Estados</span>
+                    <span class="nav-label">Estados</span>
                 </button>
-                <button class="nav-button" data-section="activos">
+                <button class="nav-button" data-section="activos" title="Estados activos" aria-label="Estados activos">
                     <svg class="icon"><use href="#i-layers"></use></svg>
-                    <span>Estados activos <span class="nav-count" id="nav-active-count">0</span></span>
+                    <span class="nav-label">Estados activos</span>
+                    <span class="nav-count" id="nav-active-count">0</span>
                 </button>
-                <button class="nav-button" data-section="lineas">
+                <button class="nav-button" data-section="lineas" title="Líneas" aria-label="Líneas">
                     <svg class="icon"><use href="#i-lines"></use></svg>
-                    <span>Líneas <span class="nav-count" id="nav-line-count">0</span></span>
+                    <span class="nav-label">Líneas</span>
+                    <span class="nav-count" id="nav-line-count">0</span>
                 </button>
-                <button class="nav-button" data-section="agendamiento">
+                <button class="nav-button" data-section="agendamiento" title="Agendamiento" aria-label="Agendamiento">
                     <svg class="icon"><use href="#i-users"></use></svg>
-                    <span>Agendamiento</span>
+                    <span class="nav-label">Agendamiento</span>
                 </button>
-                <button class="nav-button" data-section="historial">
+                <button class="nav-button" data-section="historial" title="Historial" aria-label="Historial">
                     <svg class="icon"><use href="#i-history"></use></svg>
-                    <span>Historial</span>
+                    <span class="nav-label">Historial</span>
                 </button>
-                <button class="nav-button" data-section="configuracion">
+                <button class="nav-button" data-section="configuracion" title="Configuración" aria-label="Configuración">
                     <svg class="icon"><use href="#i-settings"></use></svg>
-                    <span>Configuración</span>
+                    <span class="nav-label">Configuración</span>
                 </button>
             </nav>
 
@@ -6704,23 +8253,23 @@
                     <div id="update-progress-bar" class="update-progress-bar"></div>
                 </div>
 
-                <button type="button" id="btn-update-search" class="update-button">
+                <button type="button" id="btn-update-search" class="update-button" title="Buscar actualización" aria-label="Buscar actualización">
                     <svg class="icon"><use href="#i-update"></use></svg>
                     <span>Buscar actualización</span>
                 </button>
 
-                <button type="button" id="btn-update-download" class="update-button primary" hidden>
+                <button type="button" id="btn-update-download" class="update-button primary" title="Descargar actualización" aria-label="Descargar actualización" hidden>
                     <svg class="icon"><use href="#i-download"></use></svg>
                     <span>Descargar actualización</span>
                 </button>
 
-                <button type="button" id="btn-update-install" class="update-button install" hidden>
+                <button type="button" id="btn-update-install" class="update-button install" title="Reiniciar e instalar" aria-label="Reiniciar e instalar" hidden>
                     <svg class="icon"><use href="#i-install"></use></svg>
                     <span>Reiniciar e instalar</span>
                 </button>
             </div>
 
-            <div id="sidebar-app-version" class="sidebar-version">AutoStatues 1.1.1</div>
+            <div id="sidebar-app-version" class="sidebar-version">ZeroOne</div>
         </aside>
 
         <main class="main">
@@ -7205,6 +8754,99 @@
                     </div>
 
                     <div class="agenda-main-stack">
+                        <div class="panel agenda-panel agenda-ai-panel">
+                            <div class="agenda-ai-heading">
+                                <div>
+                                    <span class="agenda-eyebrow"><svg class="icon"><use href="#i-activity"></use></svg> IA local</span>
+                                    <h2>Detector contextual</h2>
+                                    <p>Qwen3 analiza mensajes recientes en este equipo. Hasta 5.000 mensajes por línea se conservan redactados y cifrados; cada tanda reparte hasta 400 contextos entre los chats y continúa desde donde quedó, sin enviarlos a servicios externos.</p>
+                                </div>
+                                <span id="agenda-ai-state" class="agenda-ai-state">No instalada</span>
+                            </div>
+
+                            <div class="agenda-ai-model">
+                                <div class="agenda-ai-model-main">
+                                    <span class="agenda-ai-model-icon" aria-hidden="true">
+                                        <svg class="icon"><use href="#i-layers"></use></svg>
+                                    </span>
+                                    <span class="agenda-ai-model-copy">
+                                        <strong id="agenda-ai-model-name">Qwen3 1.7B · Q4_K_M</strong>
+                                        <span id="agenda-ai-model-detail">Local y privado · modelo 1,28 GB · descarga total aproximada 1,33 GB · Apache 2.0</span>
+                                    </span>
+                                </div>
+                                <div class="agenda-ai-model-actions">
+                                    <button type="button" id="btn-agenda-ai-download" class="primary-button">
+                                        <svg class="icon"><use href="#i-download"></use></svg>
+                                        <span>Descargar IA</span>
+                                    </button>
+                                    <button type="button" id="btn-agenda-ai-pause" class="secondary-button" hidden>
+                                        <svg class="icon"><use href="#i-pause"></use></svg>
+                                        <span>Pausar</span>
+                                    </button>
+                                    <button type="button" id="btn-agenda-ai-delete" class="secondary-button agenda-ai-danger-button" hidden>
+                                        <svg class="icon"><use href="#i-trash"></use></svg>
+                                        <span>Eliminar</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="agenda-ai-download-progress" class="agenda-ai-download" hidden>
+                                <div class="agenda-ai-progress-meta">
+                                    <strong id="agenda-ai-download-message">Preparando descarga local…</strong>
+                                    <span id="agenda-ai-download-percent">0%</span>
+                                </div>
+                                <div class="agenda-ai-progress-track">
+                                    <div id="agenda-ai-download-bar" class="agenda-ai-progress-bar"></div>
+                                </div>
+                            </div>
+
+                            <div class="agenda-ai-divider"></div>
+
+                            <div class="agenda-ai-analysis-head">
+                                <div>
+                                    <strong>Analizar chats recientes</strong>
+                                    <p>La IA propone usuarios y deja los casos dudosos para revisión. Su porcentaje es una estimación, no una garantía.</p>
+                                </div>
+                                <div class="agenda-actions">
+                                    <button type="button" id="btn-agenda-ai-analyze" class="primary-button" disabled>
+                                        <svg class="icon"><use href="#i-search"></use></svg>
+                                        <span>Analizar</span>
+                                    </button>
+                                    <button type="button" id="btn-agenda-ai-stop" class="secondary-button" disabled>
+                                        <svg class="icon"><use href="#i-stop"></use></svg>
+                                        <span>Detener</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="agenda-ai-analysis-progress" class="agenda-ai-analysis-progress" hidden>
+                                <div class="agenda-ai-progress-meta">
+                                    <strong id="agenda-ai-analysis-message">Preparando análisis…</strong>
+                                    <span id="agenda-ai-analysis-count">0 de 0</span>
+                                </div>
+                                <div class="agenda-ai-progress-track">
+                                    <div id="agenda-ai-analysis-bar" class="agenda-ai-progress-bar"></div>
+                                </div>
+                                <div class="agenda-ai-analysis-stats">
+                                    <span class="agenda-ai-analysis-stat">Aprobadas <strong id="agenda-ai-analysis-approved">0</strong></span>
+                                    <span class="agenda-ai-analysis-stat">Para revisar <strong id="agenda-ai-analysis-review">0</strong></span>
+                                    <span class="agenda-ai-analysis-stat">Descartadas <strong id="agenda-ai-analysis-discarded">0</strong></span>
+                                    <span class="agenda-ai-analysis-stat">Errores <strong id="agenda-ai-analysis-errors">0</strong></span>
+                                </div>
+                            </div>
+
+                            <div class="agenda-ai-review-head">
+                                <div>
+                                    <strong>Revisión humana</strong>
+                                    <p>Confirmá, corregí o rechazá cada sugerencia antes de usarla.</p>
+                                </div>
+                                <span id="agenda-ai-review-count" class="agenda-ai-review-count">0 pendientes</span>
+                            </div>
+                            <div id="agenda-ai-review-list" class="agenda-ai-review-list">
+                                <div class="agenda-ai-empty">No hay sugerencias pendientes para esta línea.</div>
+                            </div>
+                        </div>
+
                         <div class="panel agenda-panel">
                             <div class="section-heading-row">
                                 <div>
@@ -7253,7 +8895,7 @@
                                 </button>
                             </div>
 
-                            <p class="help" style="margin:12px 0 0;">Google aplica cuotas de escritura. AutoStatues procesa de forma secuencial y conserva el avance para continuar después. Si el número ya existe, su contacto se actualiza al formato de la línea; los duplicados o contactos asignados a otra línea quedan para revisión.</p>
+                            <p class="help" style="margin:12px 0 0;">Google aplica cuotas de escritura. ZeroOne procesa de forma secuencial y conserva el avance para continuar después. Si el número ya existe, su contacto se actualiza al formato de la línea; los duplicados o contactos asignados a otra línea quedan para revisión.</p>
                         </div>
 
                         <div class="panel agenda-panel">
@@ -7755,7 +9397,7 @@
                 <div class="field">
                     <label for="editar-linea-nombre" class="label-with-icon"><svg class="icon"><use href="#i-edit"></use></svg><span>Nombre de la línea</span></label>
                     <input type="text" id="editar-linea-nombre" class="input" maxlength="80" autocomplete="off">
-                    <span class="help">Este nombre solo se usa para identificar la línea dentro de AutoStatues.</span>
+                    <span class="help">Este nombre solo se usa para identificar la línea dentro de ZeroOne.</span>
                 </div>
                 <p id="mensaje-editar-linea" class="modal-message"></p>
                 <div class="modal-actions">
@@ -7797,7 +9439,7 @@
             </div>
             <div class="modal-body">
                 <p class="agenda-keywords-intro">
-                    Escribí una frase por línea. AutoStatues buscará cada frase
+                    Escribí una frase por línea. ZeroOne buscará cada frase
                     literalmente y tomará el usuario válido que aparezca justo
                     después o justo antes, dentro de la misma línea.
                 </p>
@@ -7806,6 +9448,7 @@
                     <span>Ejemplo: si configurás <code>👤 Usuario:</code></span>
                     <span>En <code>👤 Usuario: cliente_77</code> se detectará <code>cliente_77</code>.</span>
                     <span>También podés configurar <code>todo listo</code> para detectar <code>cliente_77</code> en <code>cliente_77 todo listo ✅</code>.</span>
+                    <span>Los números solos y palabras comunes como <code>todo</code> o <code>listo</code> se descartan. Si hay dudas, el contacto queda pendiente.</span>
                 </div>
 
                 <div class="field" style="margin-top:16px;">
@@ -7935,9 +9578,65 @@
         let agendaSecuencia = 0;
         let agendaFirmaLineas = '';
         let agendaFirmaCuentas = '';
+        let agendaOperacionIA = false;
+        const agendaRevisionesIAEnCurso = new Set();
 
         const solicitudesIdempotentesEnCurso = new Set();
         const qrDescartadosPorLinea = new Map();
+        const CLAVE_SIDEBAR_COMPACTA = 'zeroone.sidebar.compacta';
+
+        function aplicarSidebarCompacta(compacta, guardar = true) {
+            const appShell = document.querySelector('.app-shell');
+            const boton = document.getElementById('btn-toggle-sidebar');
+            const estaCompacta = compacta === true;
+
+            if (!appShell || !boton) return;
+
+            appShell.classList.toggle('sidebar-collapsed', estaCompacta);
+            boton.setAttribute('aria-expanded', String(!estaCompacta));
+
+            const etiqueta = estaCompacta
+                ? 'Expandir barra lateral'
+                : 'Contraer barra lateral';
+
+            boton.title = etiqueta;
+            boton.setAttribute('aria-label', etiqueta);
+
+            if (!guardar) return;
+
+            try {
+                localStorage.setItem(
+                    CLAVE_SIDEBAR_COMPACTA,
+                    estaCompacta ? '1' : '0'
+                );
+            } catch {
+                // La preferencia es opcional; el control sigue funcionando.
+            }
+        }
+
+        function configurarSidebarCompacta() {
+            const boton = document.getElementById('btn-toggle-sidebar');
+            if (!boton) return;
+
+            let compacta = false;
+
+            try {
+                compacta = localStorage.getItem(CLAVE_SIDEBAR_COMPACTA) === '1';
+            } catch {
+                compacta = false;
+            }
+
+            aplicarSidebarCompacta(compacta, false);
+
+            boton.addEventListener('click', () => {
+                const appShell = document.querySelector('.app-shell');
+                aplicarSidebarCompacta(
+                    !appShell?.classList.contains('sidebar-collapsed')
+                );
+            });
+        }
+
+        configurarSidebarCompacta();
 
         const titulos = {
             dashboard: 'Panel general',
@@ -8464,7 +10163,7 @@
                 );
             });
 
-            document.getElementById('page-title').textContent = titulos[nombre] || 'AutoStatues';
+            document.getElementById('page-title').textContent = titulos[nombre] || 'ZeroOne';
             document.getElementById('view-controls').style.display =
                 nombre === 'dashboard' ? 'flex' : 'none';
 
@@ -8963,7 +10662,7 @@
             const id = String(botonEliminar.dataset.id);
             const confirmado = await solicitarConfirmacion({
                 titulo: 'Eliminar línea',
-                mensaje: 'La línea se quitará de AutoStatues y su sesión se cerrará. Para usarla otra vez tendrás que vincularla nuevamente.',
+                mensaje: 'La línea se quitará de ZeroOne y su sesión se cerrará. Para usarla otra vez tendrás que vincularla nuevamente.',
                 textoConfirmar: 'Eliminar línea',
                 icono: 'trash'
             });
@@ -9698,7 +11397,7 @@
             const id = botonEliminar.dataset.id;
             const confirmado = await solicitarConfirmacion({
                 titulo: 'Eliminar línea',
-                mensaje: 'La línea se quitará de AutoStatues y su sesión se cerrará. Para usarla otra vez tendrás que vincularla nuevamente.',
+                mensaje: 'La línea se quitará de ZeroOne y su sesión se cerrará. Para usarla otra vez tendrás que vincularla nuevamente.',
                 textoConfirmar: 'Eliminar línea',
                 icono: 'trash'
             });
@@ -9747,7 +11446,7 @@
         function crearClaveIdempotencia(accion) {
             const identificador = globalThis.crypto?.randomUUID?.() ||
                 `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-            return `autostatues-${accion}-${identificador}`;
+            return `zeroone-${accion}-${identificador}`;
         }
 
         function iniciarSolicitudIdempotente(claveAccion, boton) {
@@ -9871,7 +11570,7 @@
                 sincronizando: {
                     titulo: 'Sincronizando historial',
                     detalle:
-                        'WhatsApp está enviando y AutoStatues está procesando los datos.',
+                        'WhatsApp está enviando y ZeroOne está procesando los datos.',
                     marca: ''
                 },
                 lista: {
@@ -10078,6 +11777,267 @@
             return Number.isFinite(numero) && numero > 0 ? Math.round(numero) : 0;
         }
 
+        function porcentajeAgendaIA(valor) {
+            const numero = Number(valor);
+            if (!Number.isFinite(numero)) return 0;
+            return Math.min(100, Math.max(0, numero));
+        }
+
+        function porcentajeEstimacionAgendaIA(valor) {
+            const numero = Number(valor);
+            if (!Number.isFinite(numero)) return 0;
+            return Math.round(porcentajeAgendaIA(numero <= 1 ? numero * 100 : numero));
+        }
+
+        function formatearBytesAgendaIA(valor) {
+            const bytes = Number(valor);
+            if (!Number.isFinite(bytes) || bytes <= 0) return '';
+            const unidades = ['B', 'KB', 'MB', 'GB'];
+            const indice = Math.min(
+                unidades.length - 1,
+                Math.floor(Math.log(bytes) / Math.log(1000))
+            );
+            const cantidad = bytes / (1000 ** indice);
+            return `${cantidad.toLocaleString('es', {
+                maximumFractionDigits: indice >= 3 ? 2 : 1
+            })} ${unidades[indice]}`;
+        }
+
+        function estadoModeloAgendaIA(modelo = {}) {
+            return String(modelo.estado || (modelo.instalada ? 'lista' : 'no_instalada'))
+                .trim()
+                .toLocaleLowerCase('es');
+        }
+
+        function modeloAgendaIADescargando(modelo = {}) {
+            return [
+                'descargando',
+                'preparando',
+                'preparando_descarga',
+                'verificando',
+                'instalando'
+            ].includes(estadoModeloAgendaIA(modelo));
+        }
+
+        function modeloAgendaIAEnTransicion(modelo = {}) {
+            return modeloAgendaIADescargando(modelo) || [
+                'iniciando',
+                'cargando',
+                'eliminando',
+                'deteniendo'
+            ].includes(estadoModeloAgendaIA(modelo));
+        }
+
+        function renderizarRevisionesAgendaIA(revisiones = [], {
+            bloqueadas = agendaEstado?.proceso?.activo === true ||
+                agendaEstado?.ia?.analisis?.activo === true
+        } = {}) {
+            const contenedor = document.getElementById('agenda-ai-review-list');
+            const contador = document.getElementById('agenda-ai-review-count');
+            if (!contenedor || !contador) return;
+
+            const lista = (Array.isArray(revisiones) ? revisiones : [])
+                .filter(item => item && item.id && item.usuario);
+            const totalPendientes = Math.max(
+                lista.length,
+                numeroAgenda(agendaEstado?.ia?.totalRevisiones)
+            );
+            contador.textContent = totalPendientes > lista.length
+                ? `${lista.length} de ${totalPendientes} pendientes`
+                : `${lista.length} pendiente${lista.length === 1 ? '' : 's'}`;
+
+            if (!lista.length) {
+                contenedor.innerHTML = '<div class="agenda-ai-empty">No hay sugerencias pendientes para esta línea.</div>';
+                return;
+            }
+
+            contenedor.innerHTML = lista.map(item => {
+                const id = String(item.id || '').trim();
+                const telefono = String(item.telefono || '').trim();
+                const usuario = String(item.usuario || '').trim();
+                const evidencia = String(item.tipoEvidencia || 'Contexto reciente')
+                    .replaceAll('_', ' ');
+                const fechaEvidencia = item.evidencias?.[0]?.timestampMs ||
+                    item.detectadaEn;
+                const fecha = fechaEvidencia
+                    ? formatearFechaCompacta(fechaEvidencia, '')
+                    : '';
+                const estimacion = porcentajeEstimacionAgendaIA(item.confianza);
+                const procesando = bloqueadas || agendaRevisionesIAEnCurso.has(id);
+                const pendienteResolucion = item.pendienteResolucion === true;
+                const bloquearConfirmacion = procesando || pendienteResolucion;
+                return `
+                    <div class="agenda-ai-review-row" data-agenda-ai-review-id="${escaparHTML(id)}">
+                        <span class="agenda-ai-review-person">
+                            <strong>${telefono ? escaparHTML(`+${telefono.replace(/^\+/, '')}`) : 'Número pendiente'}</strong>
+                            <span>${escaparHTML(evidencia)} · estimación ${estimacion}%${fecha ? ` · ${escaparHTML(fecha)}` : ''}</span>
+                            ${pendienteResolucion ? '<span>Reconectá la línea para resolver el número antes de aprobar.</span>' : ''}
+                        </span>
+                        <label class="agenda-ai-review-editor">
+                            <input
+                                type="text"
+                                value="${escaparHTML(usuario)}"
+                                maxlength="80"
+                                autocomplete="off"
+                                aria-label="Usuario sugerido para ${escaparHTML(telefono || 'este contacto')}"
+                                ${bloquearConfirmacion ? 'disabled' : ''}
+                            >
+                            <span class="agenda-ai-estimate" title="Estimación del modelo">${estimacion}%</span>
+                        </label>
+                        <span class="agenda-ai-review-actions">
+                            <button type="button" class="secondary-button approve" data-agenda-ai-review-action="aprobar" title="Aprobar sugerencia" aria-label="Aprobar sugerencia" ${bloquearConfirmacion ? 'disabled' : ''}>
+                                ${iconoSVG('check')}
+                            </button>
+                            <button type="button" class="secondary-button edit" data-agenda-ai-review-action="editar" title="Guardar corrección" aria-label="Guardar corrección" ${bloquearConfirmacion ? 'disabled' : ''}>
+                                ${iconoSVG('edit')}
+                            </button>
+                            <button type="button" class="secondary-button reject" data-agenda-ai-review-action="rechazar" title="Rechazar sugerencia" aria-label="Rechazar sugerencia" ${procesando ? 'disabled' : ''}>
+                                ${iconoSVG('x')}
+                            </button>
+                        </span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderizarIAAgendamiento(ia = {}) {
+            const datos = ia && typeof ia === 'object' ? ia : {};
+            const modelo = datos.modelo && typeof datos.modelo === 'object'
+                ? datos.modelo
+                : {};
+            const detalleModelo = modelo.modelo && typeof modelo.modelo === 'object'
+                ? modelo.modelo
+                : {};
+            const analisis = datos.analisis && typeof datos.analisis === 'object'
+                ? datos.analisis
+                : null;
+            const estado = estadoModeloAgendaIA(modelo);
+            const instalada = modelo.instalada === true;
+            const descargando = modeloAgendaIADescargando(modelo);
+            const pausada = ['pausada', 'descarga_pausada'].includes(estado);
+            const errorModelo = Boolean(modelo.error) || estado === 'error';
+            const ejecutando = modelo.ejecutando === true;
+            const analisisActivo = analisis?.activo === true;
+            const procesoAgendaActivo = agendaEstado?.proceso?.activo === true;
+
+            const badge = document.getElementById('agenda-ai-state');
+            const presentaciones = errorModelo
+                ? { texto: 'Requiere atención', clase: 'error' }
+                : instalada
+                    ? analisisActivo
+                    ? { texto: 'Analizando', clase: 'active' }
+                    : ejecutando
+                        ? { texto: 'Motor local listo', clase: 'active' }
+                    : { texto: 'Lista en este equipo', clase: 'ready' }
+                : descargando
+                    ? { texto: estado === 'verificando' ? 'Verificando' : 'Descargando', clase: 'active' }
+                    : pausada
+                        ? { texto: 'Descarga pausada', clase: 'warning' }
+                        : { texto: 'No instalada', clase: '' };
+            badge.className = `agenda-ai-state${presentaciones.clase ? ` ${presentaciones.clase}` : ''}`;
+            badge.textContent = presentaciones.texto;
+
+            const nombreModelo = String(detalleModelo.nombre || 'Qwen3 1.7B · Q4_K_M').trim();
+            const bytesModelo = formatearBytesAgendaIA(detalleModelo.bytes) || '1,28 GB';
+            const bytesDescargaTotal = formatearBytesAgendaIA(modelo.descargaBytes) || '1,33 GB';
+            const licencia = String(detalleModelo.licencia || 'Apache 2.0')
+                .trim()
+                .replace(/^Apache-2\.0$/i, 'Apache 2.0');
+            document.getElementById('agenda-ai-model-name').textContent = nombreModelo;
+            document.getElementById('agenda-ai-model-detail').textContent =
+                `Local y privado · modelo ${bytesModelo} · descarga total aproximada ${bytesDescargaTotal} · ${licencia}`;
+
+            const botonDescargar = document.getElementById('btn-agenda-ai-download');
+            const botonPausar = document.getElementById('btn-agenda-ai-pause');
+            const botonEliminar = document.getElementById('btn-agenda-ai-delete');
+            botonDescargar.hidden = (instalada && !errorModelo) || descargando;
+            botonDescargar.disabled = agendaOperacionIA;
+            botonDescargar.querySelector('span').textContent = pausada
+                ? 'Continuar descarga'
+                : errorModelo
+                    ? 'Reinstalar IA'
+                    : 'Descargar IA';
+            botonPausar.hidden = !descargando;
+            botonPausar.disabled = agendaOperacionIA || estado === 'verificando';
+            botonEliminar.hidden = descargando || (!instalada && !pausada && porcentajeAgendaIA(modelo.porcentaje) <= 0);
+            botonEliminar.disabled = agendaOperacionIA || analisisActivo;
+
+            const progresoDescarga = document.getElementById('agenda-ai-download-progress');
+            const porcentajeDescarga = porcentajeAgendaIA(modelo.porcentaje);
+            const mostrarDescarga = descargando || pausada || errorModelo ||
+                (!instalada && porcentajeDescarga > 0);
+            progresoDescarga.hidden = !mostrarDescarga;
+            const barraDescarga = document.getElementById('agenda-ai-download-bar');
+            barraDescarga.style.width = `${porcentajeDescarga}%`;
+            barraDescarga.classList.toggle('indeterminate', descargando && porcentajeDescarga <= 0);
+            document.getElementById('agenda-ai-download-percent').textContent = `${Math.round(porcentajeDescarga)}%`;
+            document.getElementById('agenda-ai-download-message').textContent = String(
+                modelo.error || modelo.detalle || modelo.mensaje || (pausada
+                    ? 'Descarga pausada. Podés continuarla sin empezar de cero.'
+                    : 'Descargando el modelo local…')
+            );
+
+            const botonAnalizar = document.getElementById('btn-agenda-ai-analyze');
+            const botonDetener = document.getElementById('btn-agenda-ai-stop');
+            botonAnalizar.disabled =
+                agendaOperacionIA || !agendaLineaId || !instalada || analisisActivo ||
+                procesoAgendaActivo || modeloAgendaIAEnTransicion(modelo);
+            botonDetener.disabled = agendaOperacionIA || !agendaLineaId || !analisisActivo;
+
+            const panelAnalisis = document.getElementById('agenda-ai-analysis-progress');
+            const totalVentanas = numeroAgenda(analisis?.totalVentanas);
+            const procesadas = numeroAgenda(analisis?.procesadas);
+            const totalMensajes = numeroAgenda(analisis?.totalMensajes);
+            const mensajesDisponibles = numeroAgenda(
+                analisis?.mensajesDisponibles
+            );
+            const mensajesPendientes = numeroAgenda(
+                analisis?.mensajesPendientes
+            );
+            const mensajesEnCuarentena = numeroAgenda(
+                analisis?.mensajesEnCuarentena
+            );
+            const tieneResultado = Boolean(analisis);
+            panelAnalisis.hidden = !tieneResultado;
+            const porcentajeAnalisis = totalVentanas
+                ? porcentajeAgendaIA((procesadas / totalVentanas) * 100)
+                : 0;
+            const barraAnalisis = document.getElementById('agenda-ai-analysis-bar');
+            barraAnalisis.style.width = `${porcentajeAnalisis}%`;
+            barraAnalisis.classList.toggle('indeterminate', analisisActivo && totalVentanas <= 0);
+            document.getElementById('agenda-ai-analysis-count').textContent = totalVentanas
+                ? `${procesadas} de ${totalVentanas}`
+                : mensajesDisponibles > totalMensajes
+                    ? `${totalMensajes} de ${mensajesDisponibles} mensajes`
+                    : `${totalMensajes} mensajes`;
+            document.getElementById('agenda-ai-analysis-message').textContent = String(
+                analisis?.error || (analisisActivo
+                    ? analisis?.estado === 'iniciando_modelo'
+                        ? 'Iniciando el modelo local. En el primer uso puede tardar hasta dos minutos…'
+                        : 'La IA está revisando los bloques recientes de esta línea…'
+                    : analisis?.estado === 'completado' && mensajesPendientes > 0
+                        ? `Tanda finalizada. Quedan ${mensajesPendientes} mensajes para la próxima tanda.`
+                        : analisis?.estado === 'en_cuarentena'
+                            ? `${mensajesEnCuarentena} mensajes están en cuarentena temporal; los contextos nuevos podrán analizarse ahora.`
+                        : analisis?.estado
+                            ? `Análisis ${String(analisis.estado).replaceAll('_', ' ')}.`
+                        : 'Último análisis finalizado.')
+            );
+            document.getElementById('agenda-ai-analysis-approved').textContent =
+                numeroAgenda(analisis?.aprobadas);
+            document.getElementById('agenda-ai-analysis-review').textContent =
+                numeroAgenda(analisis?.revisiones);
+            document.getElementById('agenda-ai-analysis-discarded').textContent =
+                numeroAgenda(analisis?.descartadas);
+            document.getElementById('agenda-ai-analysis-errors').textContent =
+                numeroAgenda(analisis?.errores);
+
+            renderizarRevisionesAgendaIA(datos.revisiones, {
+                bloqueadas: analisisActivo || procesoAgendaActivo
+            });
+            return { analisisActivo, modeloActivo: descargando || ejecutando };
+        }
+
         function describirFuenteAgenda(fuente) {
             const etiquetas = {
                 mensaje: 'Usuario detectado',
@@ -10239,18 +12199,24 @@
             document.getElementById('agenda-progress-current').textContent =
                 String(proceso.actual || '—');
 
-            document.getElementById('agenda-line-button').disabled = activo;
+            const actividadIA = renderizarIAAgendamiento(agendaEstado.ia || {});
+            document.getElementById('agenda-line-button').disabled =
+                activo || actividadIA.analisisActivo;
             document.getElementById('agenda-account-button').disabled =
-                activo || !agendaLineaId;
-            botonCredenciales.disabled = activo || agendaOAuthEnCurso;
+                activo || actividadIA.analisisActivo || !agendaLineaId;
+            botonCredenciales.disabled =
+                activo || actividadIA.analisisActivo || agendaOAuthEnCurso;
             botonConectar.disabled =
-                activo || agendaOAuthEnCurso || !credencialesConfiguradas;
+                activo || actividadIA.analisisActivo || agendaOAuthEnCurso ||
+                !credencialesConfiguradas;
             document.getElementById('btn-agenda-start').disabled =
-                activo || !agendaLineaId || !agendaCuentaId || !credencialesConfiguradas ||
+                activo || actividadIA.analisisActivo || !agendaLineaId ||
+                !agendaCuentaId || !credencialesConfiguradas ||
                 (pendientes < 1 && usuariosPendientesJid < 1);
             document.getElementById('btn-agenda-stop').disabled =
                 !activo || !agendaLineaId;
-            document.getElementById('btn-agenda-keywords').disabled = activo;
+            document.getElementById('btn-agenda-keywords').disabled =
+                activo || actividadIA.analisisActivo;
             renderizarCandidatosAgendamiento(agendaEstado.candidatos);
             programarActualizacionAgendamiento();
         }
@@ -10261,7 +12227,16 @@
                 agendaTemporizador = null;
             }
             const procesoActivo = agendaEstado?.proceso?.activo === true;
-            if (seccionActual !== 'agendamiento' && !procesoActivo) return;
+            const analisisIAActivo = agendaEstado?.ia?.analisis?.activo === true;
+            const modeloIAActivo = modeloAgendaIAEnTransicion(
+                agendaEstado?.ia?.modelo || {}
+            ) || agendaEstado?.ia?.modelo?.ejecutando === true;
+            if (
+                seccionActual !== 'agendamiento' &&
+                !procesoActivo &&
+                !analisisIAActivo &&
+                !modeloIAActivo
+            ) return;
             agendaTemporizador = setTimeout(() => {
                 agendaTemporizador = null;
                 actualizarAgendamiento(false);
@@ -10304,6 +12279,156 @@
                 } else {
                     programarActualizacionAgendamiento();
                 }
+            }
+        }
+
+        async function cambiarModeloAgendamientoIA(accion) {
+            if (agendaOperacionIA) return;
+            const configuraciones = {
+                descargar: {
+                    url: '/agendamiento/ia/descargar',
+                    method: 'POST',
+                    error: 'No se pudo iniciar la descarga de la IA.'
+                },
+                pausar: {
+                    url: '/agendamiento/ia/pausar-descarga',
+                    method: 'POST',
+                    error: 'No se pudo pausar la descarga de la IA.'
+                },
+                eliminar: {
+                    url: '/agendamiento/ia',
+                    method: 'DELETE',
+                    error: 'No se pudo eliminar el modelo local.'
+                }
+            };
+            const configuracion = configuraciones[accion];
+            if (!configuracion) return;
+
+            const modeloActual = agendaEstado?.ia?.modelo || {};
+            const reinstalar = accion === 'descargar' &&
+                modeloActual.instalada === true &&
+                (Boolean(modeloActual.error) || modeloActual.estado === 'error');
+
+            if (accion === 'eliminar' || reinstalar) {
+                const confirmado = await solicitarConfirmacion({
+                    titulo: reinstalar ? 'Reinstalar IA local' : 'Eliminar IA local',
+                    mensaje: reinstalar
+                        ? 'Se reemplazarán el modelo y el motor local para reparar su integridad. Las sugerencias ya revisadas no se perderán.'
+                        : 'Se borrará el modelo descargado de este equipo. Las sugerencias ya revisadas no se perderán.',
+                    textoConfirmar: reinstalar ? 'Reinstalar' : 'Eliminar modelo',
+                    tono: reinstalar ? 'warning' : 'danger',
+                    icono: reinstalar ? 'refresh' : 'trash'
+                });
+                if (!confirmado) return;
+            }
+
+            agendaOperacionIA = true;
+            renderizarIAAgendamiento(agendaEstado?.ia || {});
+            try {
+                const respuesta = await fetch(configuracion.url, {
+                    method: configuracion.method,
+                    ...(reinstalar ? {
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ reinstalar: true })
+                    } : {})
+                });
+                const data = await exigirRespuesta(respuesta, configuracion.error);
+                toast(
+                    data.mensaje || (accion === 'eliminar'
+                        ? 'Modelo local eliminado.'
+                        : accion === 'pausar'
+                            ? 'Descarga pausada.'
+                            : 'Descarga local iniciada.'),
+                    'success'
+                );
+            } catch (error) {
+                toast(error.message || configuracion.error, tipoToastErrorHTTP(error));
+            } finally {
+                agendaOperacionIA = false;
+                await actualizarAgendamiento(true);
+            }
+        }
+
+        async function cambiarAnalisisAgendamientoIA(accion) {
+            if (agendaOperacionIA || !agendaLineaId) {
+                if (!agendaLineaId) toast('Seleccioná una línea antes de analizar.', 'warning');
+                return;
+            }
+            if (!['analizar', 'detener'].includes(accion)) return;
+
+            agendaOperacionIA = true;
+            renderizarIAAgendamiento(agendaEstado?.ia || {});
+            try {
+                const respuesta = await fetch(
+                    `/agendamiento/lineas/${encodeURIComponent(agendaLineaId)}/ia/${accion}`,
+                    { method: 'POST' }
+                );
+                const data = await exigirRespuesta(
+                    respuesta,
+                    accion === 'analizar'
+                        ? 'No se pudo iniciar el análisis local.'
+                        : 'No se pudo detener el análisis local.'
+                );
+                toast(
+                    data.mensaje || (accion === 'analizar'
+                        ? 'Análisis local iniciado.'
+                        : 'Análisis detenido.'),
+                    accion === 'analizar' ? 'success' : 'info'
+                );
+            } catch (error) {
+                toast(error.message || 'No se pudo cambiar el análisis.', tipoToastErrorHTTP(error));
+            } finally {
+                agendaOperacionIA = false;
+                await actualizarAgendamiento(true);
+            }
+        }
+
+        async function resolverRevisionAgendamientoIA(revisionId, accion, fila) {
+            const id = String(revisionId || '').trim();
+            if (
+                !agendaLineaId || !id ||
+                !['aprobar', 'editar', 'rechazar'].includes(accion) ||
+                agendaRevisionesIAEnCurso.has(id)
+            ) return;
+
+            const usuario = String(fila?.querySelector('input')?.value || '').trim();
+            if (accion === 'editar' && !usuario) {
+                toast('Escribí un usuario antes de guardar la corrección.', 'warning');
+                fila?.querySelector('input')?.focus({ preventScroll: true });
+                return;
+            }
+
+            agendaRevisionesIAEnCurso.add(id);
+            renderizarRevisionesAgendaIA(agendaEstado?.ia?.revisiones || []);
+            try {
+                const respuesta = await fetch(
+                    `/agendamiento/lineas/${encodeURIComponent(agendaLineaId)}/ia/revisiones/${encodeURIComponent(id)}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            accion,
+                            ...(accion === 'editar' ? { usuario } : {})
+                        })
+                    }
+                );
+                const data = await exigirRespuesta(
+                    respuesta,
+                    'No se pudo guardar la revisión.'
+                );
+                toast(
+                    data.mensaje || (accion === 'rechazar'
+                        ? 'Sugerencia rechazada.'
+                        : accion === 'editar'
+                            ? 'Corrección guardada.'
+                            : 'Sugerencia aprobada.'),
+                    accion === 'rechazar' ? 'info' : 'success'
+                );
+            } catch (error) {
+                toast(error.message || 'No se pudo guardar la revisión.', tipoToastErrorHTTP(error));
+            } finally {
+                agendaRevisionesIAEnCurso.delete(id);
+                await actualizarAgendamiento(true);
             }
         }
 
@@ -11413,7 +13538,7 @@
             const ultima = formatearFecha(item.ultimaEjecucion, 'Todavía no se ejecutó');
             const textoVisible = item.texto
                 ? escaparHTML(item.texto)
-                : '<em style="color:#8091a8;">Sin texto.</em>';
+                : '<em style="color:var(--muted);">Sin texto.</em>';
             const dias = describirDias(item.diasSemana);
             const ritmo = describirRitmoPublicacion(item);
 
@@ -11762,7 +13887,8 @@
                 cuentaId: null,
                 resumen: {},
                 proceso: {},
-                candidatos: []
+                candidatos: [],
+                ia: agendaEstado?.ia || {}
             });
             actualizarAgendamiento(true);
         });
@@ -11791,6 +13917,38 @@
         document.getElementById('btn-agenda-refresh').onclick = () => {
             actualizarAgendamiento(true);
         };
+
+        document.getElementById('btn-agenda-ai-download').onclick = () => {
+            cambiarModeloAgendamientoIA('descargar');
+        };
+
+        document.getElementById('btn-agenda-ai-pause').onclick = () => {
+            cambiarModeloAgendamientoIA('pausar');
+        };
+
+        document.getElementById('btn-agenda-ai-delete').onclick = () => {
+            cambiarModeloAgendamientoIA('eliminar');
+        };
+
+        document.getElementById('btn-agenda-ai-analyze').onclick = () => {
+            cambiarAnalisisAgendamientoIA('analizar');
+        };
+
+        document.getElementById('btn-agenda-ai-stop').onclick = () => {
+            cambiarAnalisisAgendamientoIA('detener');
+        };
+
+        document.getElementById('agenda-ai-review-list').addEventListener('click', evento => {
+            const boton = evento.target.closest('[data-agenda-ai-review-action]');
+            if (!boton) return;
+            const fila = boton.closest('[data-agenda-ai-review-id]');
+            if (!fila) return;
+            resolverRevisionAgendamientoIA(
+                String(fila.dataset.agendaAiReviewId || ''),
+                String(boton.dataset.agendaAiReviewAction || ''),
+                fila
+            );
+        });
 
         document.getElementById('btn-agenda-keywords').onclick = () => {
             abrirPalabrasClaveAgendamiento();
@@ -12030,12 +14188,12 @@
             if (!nombre) {
                 mensaje.textContent =
                     'Escribí un nombre para identificar la línea.';
-                mensaje.style.color = '#fb7185';
+                mensaje.style.color = 'var(--danger)';
                 return;
             }
 
             mensaje.textContent = 'Creando línea...';
-            mensaje.style.color = '#fbbf24';
+            mensaje.style.color = 'var(--warning)';
 
             try {
                 const respuesta = await fetch('/lineas', {
@@ -12060,7 +14218,7 @@
             } catch (error) {
                 mensaje.textContent =
                     error.message || 'No se pudo crear la línea.';
-                mensaje.style.color = '#fb7185';
+                mensaje.style.color = 'var(--danger)';
             }
         };
 
@@ -12129,7 +14287,7 @@
                 if (!claveIdempotencia) return;
 
                 mensaje.textContent = 'Optimizando imagen y preparando publicación...';
-                mensaje.style.color = '#fbbf24';
+                mensaje.style.color = 'var(--warning)';
 
                 const respuesta = await fetch('/subir', {
                     method: 'POST',
@@ -12155,8 +14313,8 @@
             } catch (error) {
                 mensaje.textContent = error.message;
                 mensaje.style.color = [409, 429].includes(Number(error?.httpStatus))
-                    ? '#fbbf24'
-                    : '#fb7185';
+                    ? 'var(--warning)'
+                    : 'var(--danger)';
             } finally {
                 if (claveIdempotencia) {
                     finalizarSolicitudIdempotente(claveAccion, boton);
@@ -12176,7 +14334,7 @@
                 if (!claveIdempotencia) return;
 
                 mensaje.textContent = 'Optimizando imagen y guardando programación...';
-                mensaje.style.color = '#fbbf24';
+                mensaje.style.color = 'var(--warning)';
 
                 const respuesta = await fetch('/programar', {
                     method: 'POST',
@@ -12202,8 +14360,8 @@
             } catch (error) {
                 mensaje.textContent = error.message;
                 mensaje.style.color = [409, 429].includes(Number(error?.httpStatus))
-                    ? '#fbbf24'
-                    : '#fb7185';
+                    ? 'var(--warning)'
+                    : 'var(--danger)';
             } finally {
                 if (claveIdempotencia) {
                     finalizarSolicitudIdempotente(claveAccion, boton);
@@ -12223,13 +14381,13 @@
 
             if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) {
                 mensaje.textContent = 'Elegí una hora válida.';
-                mensaje.style.color = '#fb7185';
+                mensaje.style.color = 'var(--danger)';
                 return;
             }
 
             if (!diasSemana.length) {
                 mensaje.textContent = 'Seleccioná al menos un día de la semana.';
-                mensaje.style.color = '#fb7185';
+                mensaje.style.color = 'var(--danger)';
                 return;
             }
 
@@ -12248,7 +14406,7 @@
                 mensaje.textContent = archivo
                     ? 'Optimizando imagen y guardando cambios...'
                     : 'Guardando cambios...';
-                mensaje.style.color = '#fbbf24';
+                mensaje.style.color = 'var(--warning)';
 
                 const respuesta = await fetch(
                     `/programaciones/${id}`,
@@ -12277,7 +14435,7 @@
                 actualizarProgramaciones();
             } catch (error) {
                 mensaje.textContent = error.message;
-                mensaje.style.color = '#fb7185';
+                mensaje.style.color = 'var(--danger)';
             } finally {
                 boton.disabled = false;
             }
@@ -12344,14 +14502,14 @@
 
             if (!id || !nombre) {
                 mensaje.textContent = 'Escribí un nombre válido para la línea.';
-                mensaje.style.color = '#fb7185';
+                mensaje.style.color = 'var(--danger)';
                 return;
             }
 
             try {
                 boton.disabled = true;
                 mensaje.textContent = 'Guardando cambios...';
-                mensaje.style.color = '#fbbf24';
+                mensaje.style.color = 'var(--warning)';
                 const respuesta = await fetch(`/lineas/${encodeURIComponent(id)}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
@@ -12367,7 +14525,7 @@
                 actualizarLineas();
             } catch (error) {
                 mensaje.textContent = error.message;
-                mensaje.style.color = '#fb7185';
+                mensaje.style.color = 'var(--danger)';
             } finally {
                 boton.disabled = false;
             }
@@ -12469,7 +14627,7 @@
 
         document.getElementById('btn-probar-notificacion').onclick = async () => {
             if (window.sistema?.notificar) {
-                await window.sistema.notificar('AutoStatues', 'Las notificaciones están funcionando correctamente.');
+                await window.sistema.notificar('ZeroOne', 'Las notificaciones están funcionando correctamente.');
                 toast('Notificación enviada.', 'success');
             } else {
                 toast('Las notificaciones solo están disponibles en la aplicación instalada.', 'error');
@@ -12568,7 +14726,7 @@
 
             const versionActual = estado.versionActual || '1.1.1';
             version.textContent = `v${versionActual}`;
-            if (versionSidebar) versionSidebar.textContent = `AutoStatues ${versionActual}`;
+            if (versionSidebar) versionSidebar.textContent = `ZeroOne ${versionActual}`;
             mensaje.textContent = estado.mensaje || 'Estado de actualización no disponible.';
 
             const porcentaje = Math.max(0, Math.min(100, Number(estado.porcentaje) || 0));
@@ -12681,7 +14839,7 @@
         document.getElementById('btn-update-install').onclick = async () => {
             const confirmado = await solicitarConfirmacion({
                 titulo: 'Instalar actualización',
-                mensaje: 'AutoStatues se cerrará para completar la instalación.',
+                mensaje: 'ZeroOne se cerrará para completar la instalación.',
                 textoConfirmar: 'Instalar ahora',
                 tono: 'primary',
                 icono: 'install'

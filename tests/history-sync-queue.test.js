@@ -108,6 +108,7 @@ function cargarBackendAislado(rutaDatos, sesionesRegistradas = new Map()) {
                 invalidarConexionActual,
                 lineas,
                 reanalizarMensajesRecientesAgendamiento,
+                seleccionarMensajesContextualesIA,
                 servicioAgendamiento,
                 cerrar: () => servicioAgendamiento.cerrar()
             };
@@ -129,6 +130,30 @@ function cargarBackendAislado(rutaDatos, sesionesRegistradas = new Map()) {
             process.env.AUTOSTATUES_DATA_DIR = valorAnterior;
         }
     }
+}
+
+function mensajeSaliente(jid, texto, timestamp, id, remoteJidAlt) {
+    return {
+        key: {
+            fromMe: true,
+            remoteJid: jid,
+            remoteJidAlt,
+            id
+        },
+        messageTimestamp: timestamp,
+        message: { conversation: texto }
+    };
+}
+
+function mensajesChatIA(indice, timestampBase) {
+    const jid = `595981${String(indice).padStart(6, '0')}@s.whatsapp.net`;
+    return [
+        mensajeSaliente(jid, 'hola', timestampBase, `c${indice}-0`),
+        mensajeSaliente(jid, 'datos de la cuenta', timestampBase + 1, `c${indice}-1`),
+        mensajeSaliente(jid, 'clave entregada', timestampBase + 2, `c${indice}-2`),
+        mensajeSaliente(jid, `Usuario: jugador${indice}x`, timestampBase + 3, `c${indice}-3`),
+        mensajeSaliente(jid, 'fin', timestampBase + 4, `c${indice}-4`)
+    ];
 }
 
 async function cerrarBackendAislado(backend, rutaDatos) {
@@ -257,4 +282,147 @@ test('Agendamiento procesa RECENT con frases configuradas e ignora FULL', async 
     );
     assert.equal(persistido.includes('privada'), false);
     assert.equal(persistido.includes('no_importar_full'), false);
+});
+
+test('el selector une hosted LID y PN antes de crear contexto para Qwen', async t => {
+    const rutaDatos = fs.mkdtempSync(
+        path.join(os.tmpdir(), 'autostatues-ai-hosted-lid-')
+    );
+    const backend = cargarBackendAislado(rutaDatos);
+    t.after(() => cerrarBackendAislado(backend, rutaDatos));
+    const pn = '595981230099@s.whatsapp.net';
+    const lid = '1230099@hosted.lid';
+    const linea = {
+        mapeosActividadContactos: new Map([[lid, pn]]),
+        marcaAnalisisIA: null
+    };
+
+    const lote = backend.seleccionarMensajesContextualesIA([
+        mensajeSaliente(lid, 'rositaflor77', 1700000000, 'lid-usuario'),
+        mensajeSaliente(pn, 'todo listo', 1700000001, 'pn-confirmacion')
+    ], ['todo listo'], linea);
+
+    assert.equal(lote.mensajes.length, 2);
+    assert.deepEqual(
+        [...new Set(lote.mensajes.map(item => item.key.remoteJid))],
+        [pn]
+    );
+});
+
+test('la marca estable continúa la tanda aunque entren chats más nuevos', async t => {
+    const rutaDatos = fs.mkdtempSync(
+        path.join(os.tmpdir(), 'autostatues-ai-cursor-estable-')
+    );
+    const backend = cargarBackendAislado(rutaDatos);
+    t.after(() => cerrarBackendAislado(backend, rutaDatos));
+    const linea = {
+        mapeosActividadContactos: new Map(),
+        marcaAnalisisIA: null
+    };
+    const anteriores = Array.from({ length: 100 }, (_, indice) => (
+        mensajesChatIA(indice, 1700000000 + indice * 10)
+    )).flat();
+    const primera = backend.seleccionarMensajesContextualesIA(
+        anteriores,
+        ['Usuario:'],
+        linea
+    );
+    assert.equal(primera.mensajes.length, 400);
+    assert.equal(primera.mensajesPendientes, 100);
+    assert.match(primera.marcaSiguiente, /^[a-f0-9]{64}$/u);
+
+    linea.marcaAnalisisIA = primera.marcaSiguiente;
+    const nuevos = Array.from({ length: 50 }, (_, desplazamiento) => {
+        const indice = 100 + desplazamiento;
+        return mensajesChatIA(indice, 1700000000 + indice * 10);
+    }).flat();
+    const segunda = backend.seleccionarMensajesContextualesIA(
+        [...anteriores, ...nuevos],
+        ['Usuario:'],
+        linea
+    );
+    const ids = new Set(segunda.mensajes.map(item => item.key.id));
+
+    assert.equal(segunda.mensajes.length, 400);
+    assert.equal(ids.has('c10-3'), true, 'continúa después de la marca estable');
+    assert.equal(ids.has('c50-3'), false, 'no vuelve al antiguo índice posicional');
+});
+
+test('una tanda en cuarentena no bloquea contextos nuevos', async t => {
+    const rutaDatos = fs.mkdtempSync(
+        path.join(os.tmpdir(), 'autostatues-ai-cuarentena-')
+    );
+    const backend = cargarBackendAislado(rutaDatos);
+    t.after(() => cerrarBackendAislado(backend, rutaDatos));
+    const linea = {
+        mapeosActividadContactos: new Map(),
+        marcaAnalisisIA: null,
+        cuarentenaAnalisisIA: []
+    };
+    const anterior = mensajesChatIA(1, 1700000000);
+    const primera = backend.seleccionarMensajesContextualesIA(
+        anterior,
+        ['Usuario:'],
+        linea
+    );
+    linea.cuarentenaAnalisisIA = primera.marcasLote.map(marca => ({
+        marca,
+        hasta: Date.now() + 30 * 60 * 1000
+    }));
+
+    const segunda = backend.seleccionarMensajesContextualesIA(
+        [...anterior, ...mensajesChatIA(2, 1700000100)],
+        ['Usuario:'],
+        linea
+    );
+    const ids = new Set(segunda.mensajes.map(item => item.key.id));
+
+    assert.equal(segunda.mensajesEnCuarentena, 5);
+    assert.equal(segunda.mensajes.length, 5);
+    assert.equal(ids.has('c1-3'), false);
+    assert.equal(ids.has('c2-3'), true);
+});
+
+test('la marca y la cuarentena sobreviven timestamps en segundos o milisegundos', async t => {
+    const rutaDatos = fs.mkdtempSync(
+        path.join(os.tmpdir(), 'autostatues-ai-timestamp-estable-')
+    );
+    const backend = cargarBackendAislado(rutaDatos);
+    t.after(() => cerrarBackendAislado(backend, rutaDatos));
+    const linea = {
+        mapeosActividadContactos: new Map(),
+        marcaAnalisisIA: null,
+        cuarentenaAnalisisIA: []
+    };
+    const mensajesSegundos = mensajesChatIA(3, 1700000200);
+    const primera = backend.seleccionarMensajesContextualesIA(
+        mensajesSegundos,
+        ['Usuario:'],
+        linea
+    );
+    const mensajesMilisegundos = mensajesSegundos.map(mensaje => ({
+        ...mensaje,
+        messageTimestamp: Number(mensaje.messageTimestamp) * 1000
+    }));
+    const segunda = backend.seleccionarMensajesContextualesIA(
+        mensajesMilisegundos,
+        ['Usuario:'],
+        linea
+    );
+
+    assert.deepEqual(segunda.marcasLote, primera.marcasLote);
+    assert.equal(segunda.marcaSiguiente, primera.marcaSiguiente);
+
+    linea.cuarentenaAnalisisIA = primera.marcasLote.map(marca => ({
+        marca,
+        hasta: Date.now() + 30 * 60 * 1000
+    }));
+    const tercera = backend.seleccionarMensajesContextualesIA(
+        mensajesMilisegundos,
+        ['Usuario:'],
+        linea
+    );
+
+    assert.equal(tercera.mensajes.length, 0);
+    assert.equal(tercera.mensajesEnCuarentena, 5);
 });

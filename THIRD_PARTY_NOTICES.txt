@@ -1,0 +1,35 @@
+ZeroOne - componentes opcionales de IA local
+================================================
+
+La función de detección local descarga estos componentes solamente cuando
+el usuario lo solicita desde la aplicación:
+
+Qwen3-1.7B / Qwen3-1.7B-GGUF
+Copyright de sus respectivos autores y colaboradores.
+Licencia: Apache License 2.0.
+Modelo original: https://huggingface.co/Qwen/Qwen3-1.7B
+GGUF utilizado: https://huggingface.co/ggml-org/Qwen3-1.7B-GGUF
+Licencia: https://www.apache.org/licenses/LICENSE-2.0
+
+llama.cpp
+Copyright (c) 2023-2026 The ggml authors.
+Licencia: MIT.
+Proyecto: https://github.com/ggml-org/llama.cpp
+Licencia: https://github.com/ggml-org/llama.cpp/blob/master/LICENSE
+
+El paquete binario de llama.cpp puede contener componentes de terceros. Sus
+avisos se mantienen en el repositorio de la versión fijada b10047:
+https://github.com/ggml-org/llama.cpp/tree/b10047/licenses
+
+Entre ellos se encuentran LLVM/OpenMP (Apache-2.0 con LLVM Exception),
+nlohmann/json (MIT), cpp-httplib (MIT) y componentes criptográficos con sus
+respectivos avisos BSD/ISC/OpenSSL.
+
+ZeroOne no envía los chats a estos proyectos ni a un servicio externo. El
+modelo y llama.cpp se ejecutan localmente en 127.0.0.1.
+
+Stadium
+Copyright de Matthew Welch.
+Tipografía gratuita para proyectos personales y comerciales.
+Aviso original incluido en font/stadium.txt.
+Sitio del autor: http://www.squaregear.net/fonts/

@@ -27,9 +27,22 @@ const {
     extraerTextoMensaje,
     obtenerPrefijoLinea
 } = require('./agendamiento');
+const {
+    crearDetectorUsuarioIA,
+    redactarTextoParaIA
+} = require('./ai-username-detector');
+const { crearRuntimeIALocal } = require('./local-ai-runtime');
+const { crearAlmacenMensajesRecientes } = require('./recent-message-store');
 
 const app = express();
-const puertoConfigurado = Number(process.env.AUTOSTATUES_PORT);
+app.disable('x-powered-by');
+
+const TOKEN_SESION_ESCRITORIO = String(
+    process.env.ZEROONE_DESKTOP_TOKEN || ''
+);
+const puertoConfigurado = Number(
+    process.env.ZEROONE_PORT || process.env.AUTOSTATUES_PORT
+);
 const PUERTO_SERVIDOR = Number.isInteger(puertoConfigurado) &&
     puertoConfigurado >= 1 &&
     puertoConfigurado <= 65535
@@ -37,9 +50,12 @@ const PUERTO_SERVIDOR = Number.isInteger(puertoConfigurado) &&
     : 3000;
 const RAIZ_PROYECTO = path.resolve(__dirname, '..');
 const CARPETA_DATOS = path.resolve(
-    process.env.AUTOSTATUES_DATA_DIR || RAIZ_PROYECTO
+    process.env.ZEROONE_DATA_DIR ||
+    process.env.AUTOSTATUES_DATA_DIR ||
+    RAIZ_PROYECTO
 );
 const CARPETA_PUBLIC = path.join(RAIZ_PROYECTO, 'public');
+const CARPETA_FUENTES = path.join(RAIZ_PROYECTO, 'font');
 const CARPETA_UPLOADS = path.join(CARPETA_DATOS, 'uploads');
 const CARPETA_SESIONES = path.join(CARPETA_DATOS, 'sesiones');
 const CARPETA_PROGRAMADOS = path.join(CARPETA_DATOS, 'programados');
@@ -59,6 +75,11 @@ const ARCHIVO_AGENDAMIENTO = path.join(
     CARPETA_DATOS,
     'agendamiento',
     'datos.json'
+);
+const CARPETA_IA_LOCAL = path.resolve(
+    process.env.ZEROONE_AI_DIR ||
+    process.env.AUTOSTATUES_AI_DIR ||
+    path.join(CARPETA_DATOS, 'ia-local')
 );
 
 function carpetaTieneContenido(ruta) {
@@ -126,12 +147,44 @@ function origenCoincideConHostLocal(origen, hostLocal) {
     }
 }
 
+function tokenSesionEsValido(valor) {
+    if (!TOKEN_SESION_ESCRITORIO) return true;
+
+    const esperado = Buffer.from(TOKEN_SESION_ESCRITORIO);
+    const recibido = Buffer.from(String(valor || ''));
+
+    return recibido.length === esperado.length &&
+        crypto.timingSafeEqual(recibido, esperado);
+}
+
 // La API controla WhatsApp y Google Contacts: aunque escuche sólo en
 // loopback, se rechazan DNS rebinding y formularios enviados desde otra web.
 app.use((req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader(
+        'Content-Security-Policy',
+        "default-src 'self'; img-src 'self' data: blob:; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "script-src 'self' 'unsafe-inline'; connect-src 'self'; " +
+        "font-src 'self' data:; object-src 'none'; frame-src 'none'; " +
+        "frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+    );
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+
     const hostLocal = analizarHostLocal(req.headers.host);
     if (!hostLocal) {
         return res.status(403).json({ error: 'Origen local no permitido.' });
+    }
+
+    if (!tokenSesionEsValido(req.headers['x-zeroone-desktop'])) {
+        return res.status(403).json({
+            error: 'Esta interfaz solo está disponible desde ZeroOne.'
+        });
     }
 
     if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
@@ -149,6 +202,11 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
+app.use('/fonts', express.static(CARPETA_FUENTES, {
+    dotfiles: 'deny',
+    fallthrough: false,
+    index: false
+}));
 app.use(express.static(CARPETA_PUBLIC));
 
 fs.mkdirSync(CARPETA_UPLOADS, { recursive: true });
@@ -219,7 +277,7 @@ function responderConflictoPrefijoAgendamiento(res, linea, nombre) {
 }
 
 function obtenerPuenteSeguroAgendamiento() {
-    const puente = global.autostatuesSecureStorage;
+    const puente = global.zerooneSecureStorage;
     if (
         !puente ||
         typeof puente.cifrar !== 'function' ||
@@ -227,7 +285,7 @@ function obtenerPuenteSeguroAgendamiento() {
         (typeof puente.disponible === 'function' && !puente.disponible())
     ) {
         throw new Error(
-            'El almacenamiento seguro de Windows no está disponible. Abrí AutoStatues desde la aplicación de escritorio.'
+            'El almacenamiento seguro de Windows no está disponible. Abrí ZeroOne desde la aplicación de escritorio.'
         );
     }
     return puente;
@@ -244,10 +302,10 @@ const servicioAgendamiento = crearServicioAgendamiento({
         return linea ? describirLineaParaAgendamiento(linea) : null;
     },
     abrirEnlace: async url => {
-        const escritorio = global.autostatuesDesktop;
+        const escritorio = global.zerooneDesktop;
         if (!escritorio || typeof escritorio.abrirEnlace !== 'function') {
             throw new Error(
-                'El navegador seguro solo está disponible desde AutoStatues Desktop.'
+                'La apertura segura solo está disponible desde ZeroOne.'
             );
         }
         await escritorio.abrirEnlace(url);
@@ -256,9 +314,51 @@ const servicioAgendamiento = crearServicioAgendamiento({
     descifrar: async valor => obtenerPuenteSeguroAgendamiento().descifrar(valor)
 });
 
+let almacenMensajesRecientes = null;
+let errorAlmacenMensajesInformado = false;
+
+function obtenerAlmacenMensajesRecientes() {
+    if (almacenMensajesRecientes) return almacenMensajesRecientes;
+    try {
+        const puente = obtenerPuenteSeguroAgendamiento();
+        almacenMensajesRecientes = crearAlmacenMensajesRecientes({
+            ruta: path.join(CARPETA_DATOS, 'agendamiento', 'mensajes-recientes.sqlite'),
+            rutaClave: path.join(CARPETA_DATOS, 'agendamiento', 'mensajes-recientes.key'),
+            cifrarClave: valor => puente.cifrar(valor),
+            descifrarClave: valor => puente.descifrar(valor)
+        });
+        global.zerooneAlmacenMensajes = almacenMensajesRecientes;
+        return almacenMensajesRecientes;
+    } catch (error) {
+        if (!errorAlmacenMensajesInformado) {
+            errorAlmacenMensajesInformado = true;
+            console.warn(
+                'Los mensajes recientes no pudieron abrirse con el cifrado local:',
+                error?.message
+            );
+        }
+        return null;
+    }
+}
+
+const runtimeIALocal = crearRuntimeIALocal({ carpeta: CARPETA_IA_LOCAL });
+const detectorUsuarioIA = crearDetectorUsuarioIA({
+    cliente: (solicitud, { signal } = {}) => runtimeIALocal.completar(
+        {
+            ...solicitud,
+            chat_template_kwargs: { enable_thinking: false }
+        },
+        { signal }
+    ),
+    modelo: 'zeroone-qwen3',
+    timeoutMs: 60000
+});
+
 let ultimoProgresoAgendamiento = null;
 let promesaOAuthAgendamiento = null;
 let preparacionAgendamiento = null;
+let tareaAnalisisIA = null;
+let ultimoAnalisisIA = null;
 
 servicioAgendamiento.on('progreso', progreso => {
     ultimoProgresoAgendamiento = progreso;
@@ -273,9 +373,12 @@ function obtenerProcesoAgendamientoActivo() {
 function agendamientoEstaOcupado() {
     return Boolean(
         preparacionAgendamiento ||
-        servicioAgendamiento.estaOcupado?.()
+        servicioAgendamiento.estaOcupado?.() ||
+        tareaAnalisisIA
     );
 }
+
+global.zerooneIaLocal = runtimeIALocal;
 
 const archivoLineas = path.join(CARPETA_SESIONES, 'lineas.json');
 const archivoProgramaciones = path.join(CARPETA_PROGRAMADOS, 'programaciones.json');
@@ -328,8 +431,14 @@ const MARGEN_TIMESTAMP_FUTURO_MS = 5 * 60 * 1000;
 const TIEMPO_MAXIMO_SINCRONIZACION_HISTORIAL_MS = 15 * 60 * 1000;
 const TIEMPO_INACTIVIDAD_SINCRONIZACION_HISTORIAL_MS = 2 * 60 * 1000;
 const DEMORA_SIGUIENTE_SINCRONIZACION_HISTORIAL_MS = 1000;
-const MAXIMOS_MENSAJES_RECIENTES_AGENDAMIENTO = 3000;
+const MAXIMOS_MENSAJES_RECIENTES_AGENDAMIENTO = 5000;
+const MAXIMOS_MENSAJES_CACHE_RAM_AGENDAMIENTO = 30;
 const MAXIMOS_CARACTERES_MENSAJE_RECIENTE_AGENDAMIENTO = 4000;
+const MAXIMOS_MENSAJES_POR_ANALISIS_IA = 400;
+const MAXIMOS_ERRORES_CONSECUTIVOS_IA = 3;
+const DURACION_CUARENTENA_ANALISIS_IA_MS = 30 * 60 * 1000;
+const MAXIMAS_MARCAS_CUARENTENA_ANALISIS_IA = 2000;
+const TIEMPO_MAXIMO_RESOLUCION_LID_MS = 3000;
 const MODOS_RITMO_PUBLICACION = new Set(['secuencial', 'grupos']);
 const ESTADOS_HISTORIAL_AGENDAMIENTO = new Set([
     'pendiente',
@@ -478,7 +587,7 @@ function crearEstadoHistorialAgendamiento(datos = {}, restaurar = false) {
     ) {
         estado = 'pausada';
         motivo =
-            'La preparación del historial se interrumpió al cerrar AutoStatues. Podés reanudarla manualmente.';
+            'La preparación del historial se interrumpió al cerrar ZeroOne. Podés reanudarla manualmente.';
     }
 
     const progreso = normalizarProgresoHistorialAgendamiento(
@@ -1115,7 +1224,7 @@ function notificarEscritorio(titulo, cuerpo) {
     if (!configuracion.notificaciones) return;
 
     try {
-        const escritorio = global.autostatuesDesktop;
+        const escritorio = global.zerooneDesktop;
         if (escritorio && typeof escritorio.notificar === 'function') {
             escritorio.notificar(titulo, cuerpo);
         }
@@ -2926,7 +3035,19 @@ async function resolverJidDestinatario(socket, valor) {
     if (!jid || !esJidLid(jid)) return jid;
 
     try {
-        const numero = await socket.signalRepository?.lidMapping?.getPNForLID(jid);
+        let temporizador = null;
+        const numero = await Promise.race([
+            Promise.resolve(
+                socket.signalRepository?.lidMapping?.getPNForLID(jid)
+            ),
+            new Promise(resolve => {
+                temporizador = setTimeout(
+                    () => resolve(null),
+                    TIEMPO_MAXIMO_RESOLUCION_LID_MS
+                );
+                temporizador.unref?.();
+            })
+        ]).finally(() => clearTimeout(temporizador));
         const jidNumero = normalizarJidDestinatario(numero);
 
         if (esJidNumero(jidNumero)) {
@@ -2940,6 +3061,13 @@ async function resolverJidDestinatario(socket, valor) {
 }
 
 async function resolverJidAgendamiento(linea, socket, valor, contexto = {}) {
+    const generacionInicial = Number(linea?.generacionConexion) || 0;
+    const sigueVigente = () => (
+        !linea?.eliminando &&
+        linea?.socket === socket &&
+        (Number(linea?.generacionConexion) || 0) === generacionInicial
+    );
+    if (!sigueVigente()) return null;
     const clave = contexto?.key || {};
     const recibo = contexto?.receipt || contexto?.update || {};
     const candidatos = [
@@ -2973,6 +3101,7 @@ async function resolverJidAgendamiento(linea, socket, valor, contexto = {}) {
 
     for (const lid of lidsPendientes) {
         const resuelto = await resolverJidDestinatario(socket, lid);
+        if (!sigueVigente()) return null;
         if (!esJidNumero(resuelto) || jidsPropios.has(resuelto)) continue;
 
         aplicarMapeoActividadContactos(linea, lid, resuelto);
@@ -3066,14 +3195,23 @@ function programarResolucionPendientesAgendamiento(
 
 function copiarMensajeRecienteParaAgendamiento(mensaje) {
     if (mensaje?.key?.fromMe !== true) return null;
-    const remoto = normalizarJidDestinatario(mensaje?.key?.remoteJid);
+    const remotoOriginal = normalizarJidDestinatario(
+        mensaje?.key?.remoteJid
+    );
+    const remotoAlternativo = normalizarJidDestinatario(
+        mensaje?.key?.remoteJidAlt
+    );
+    // Cuando Baileys entrega LID y PN juntos, el número es la identidad
+    // estable. Esto evita dividir el mismo chat en dos ventanas de IA.
+    const remoto = [remotoOriginal, remotoAlternativo].find(esJidNumero) ||
+        remotoOriginal || remotoAlternativo;
     if (
         !remoto ||
         remoto === 'status@broadcast' ||
         remoto.endsWith('@g.us')
     ) return null;
 
-    const texto = extraerTextoMensaje(mensaje)
+    const texto = redactarTextoParaIA(extraerTextoMensaje(mensaje))
         .slice(0, MAXIMOS_CARACTERES_MENSAJE_RECIENTE_AGENDAMIENTO);
     if (!texto.trim()) return null;
 
@@ -3094,7 +3232,8 @@ function copiarMensajeRecienteParaAgendamiento(mensaje) {
             key: {
                 fromMe: true,
                 remoteJid: remoto,
-                remoteJidAlt: copiarJid(mensaje?.key?.remoteJidAlt),
+                remoteJidAlt: [remotoOriginal, remotoAlternativo]
+                    .find(jid => jid && jid !== remoto) || undefined,
                 participant: copiarJid(mensaje?.key?.participant),
                 participantAlt: copiarJid(mensaje?.key?.participantAlt),
                 id: id || undefined
@@ -3105,6 +3244,40 @@ function copiarMensajeRecienteParaAgendamiento(mensaje) {
     };
 }
 
+function actualizarIdentidadAgendamientoLinea(linea, jidEntrada) {
+    const jid = normalizarJidDestinatario(jidEntrada);
+    if (!linea || !jid) return false;
+    const huella = crypto.createHash('sha256').update(jid).digest('hex');
+    const anterior = /^[a-f0-9]{64}$/u.test(
+        linea.identidadAgendamiento || ''
+    ) ? linea.identidadAgendamiento : null;
+    if (anterior && anterior !== huella) {
+        if (tareaAnalisisIA?.lineaId === linea.id) {
+            tareaAnalisisIA.controlador.abort();
+        }
+        linea.mensajesRecientesAgendamiento?.clear?.();
+        try {
+            obtenerAlmacenMensajesRecientes()?.eliminarLinea(linea.id);
+        } catch (error) {
+            console.warn(
+                `No se pudo limpiar el contexto de la cuenta anterior de ${linea.nombre}:`,
+                error?.message
+            );
+        }
+        servicioAgendamiento.eliminarLinea(
+            { id: linea.id, nombre: linea.nombre },
+            { forzar: true }
+        );
+        linea.marcaAnalisisIA = null;
+        linea.cuarentenaAnalisisIA = [];
+        console.log(
+            `Se limpió el agendamiento de ${linea.nombre} porque la card fue vinculada a otro número.`
+        );
+    }
+    linea.identidadAgendamiento = huella;
+    return anterior !== huella;
+}
+
 function guardarMensajesRecientesAgendamiento(linea, mensajes) {
     if (!linea || linea.eliminando) return 0;
     if (!(linea.mensajesRecientesAgendamiento instanceof Map)) {
@@ -3112,23 +3285,36 @@ function guardarMensajesRecientesAgendamiento(linea, mensajes) {
     }
 
     let guardados = 0;
+    const persistibles = [];
     for (const mensaje of Array.isArray(mensajes) ? mensajes : []) {
         const copia = copiarMensajeRecienteParaAgendamiento(mensaje);
         if (!copia) continue;
 
         linea.mensajesRecientesAgendamiento.delete(copia.clave);
         linea.mensajesRecientesAgendamiento.set(copia.clave, copia.mensaje);
+        persistibles.push(copia.mensaje);
         guardados += 1;
     }
 
     while (
         linea.mensajesRecientesAgendamiento.size >
-        MAXIMOS_MENSAJES_RECIENTES_AGENDAMIENTO
+        MAXIMOS_MENSAJES_CACHE_RAM_AGENDAMIENTO
     ) {
         const primeraClave =
             linea.mensajesRecientesAgendamiento.keys().next().value;
         if (primeraClave === undefined) break;
         linea.mensajesRecientesAgendamiento.delete(primeraClave);
+    }
+
+    if (persistibles.length) {
+        try {
+            obtenerAlmacenMensajesRecientes()?.guardar(linea.id, persistibles);
+        } catch (error) {
+            console.warn(
+                `No se pudieron conservar mensajes recientes de ${linea.nombre}:`,
+                error?.message
+            );
+        }
     }
 
     return guardados;
@@ -3141,6 +3327,13 @@ function registrarMensajesParaAgendamiento(
     origen = 'vivo',
     { cachear = true } = {}
 ) {
+    if (
+        !linea || !socket ||
+        lineas.get(linea.id) !== linea ||
+        linea.socket !== socket ||
+        linea.eliminando
+    ) return Promise.resolve(null);
+    const generacionConexion = Number(linea.generacionConexion) || 0;
     const jidsPropios = obtenerJidsPropiosActividad(linea, socket);
     const lista = (Array.isArray(mensajes) ? mensajes : [])
         .filter(mensaje => {
@@ -3166,19 +3359,39 @@ function registrarMensajesParaAgendamiento(
     const actual = Promise.resolve(anterior)
         .catch(() => {})
         .then(() => Promise.all([
-            servicioAgendamiento.registrarMensajes(
-                describirLineaParaAgendamiento(linea),
-                lista,
-                resolver,
-                { origen }
-            ),
-            servicioAgendamiento.registrarPublicadoresEstado(
-                describirLineaParaAgendamiento(linea),
-                lista,
-                resolver
-            )
+            conexionSigueVigente(
+                linea.id,
+                linea,
+                generacionConexion,
+                socket
+            ) && !linea.eliminando
+                ? servicioAgendamiento.registrarMensajes(
+                    describirLineaParaAgendamiento(linea),
+                    lista,
+                    resolver,
+                    { origen }
+                )
+                : null,
+            conexionSigueVigente(
+                linea.id,
+                linea,
+                generacionConexion,
+                socket
+            ) && !linea.eliminando
+                ? servicioAgendamiento.registrarPublicadoresEstado(
+                    describirLineaParaAgendamiento(linea),
+                    lista,
+                    resolver
+                )
+                : null
         ]))
         .then(() => {
+            if (!conexionSigueVigente(
+                linea.id,
+                linea,
+                generacionConexion,
+                socket
+            ) || linea.eliminando) return null;
             // El mensaje puede haber llegado antes que su mapeo LID -> PN.
             // Serializar los chunks evita escrituras simultáneas con historiales
             // grandes y permite saber cuándo terminó de procesarse el 100 %.
@@ -3198,6 +3411,34 @@ function registrarMensajesParaAgendamiento(
     return linea.promesaIngestaAgendamiento;
 }
 
+function obtenerMensajesRecientesCombinados(linea) {
+    const combinados = new Map();
+    try {
+        for (const mensaje of obtenerAlmacenMensajesRecientes()?.obtener(
+            linea.id,
+            MAXIMOS_MENSAJES_RECIENTES_AGENDAMIENTO
+        ) || []) {
+            const copia = copiarMensajeRecienteParaAgendamiento(mensaje);
+            if (copia) combinados.set(copia.clave, copia.mensaje);
+        }
+    } catch (error) {
+        console.warn(
+            `No se pudieron leer mensajes recientes de ${linea.nombre}:`,
+            error?.message
+        );
+    }
+    if (linea.mensajesRecientesAgendamiento instanceof Map) {
+        for (const [clave, mensaje] of linea.mensajesRecientesAgendamiento) {
+            combinados.delete(clave);
+            combinados.set(clave, mensaje);
+        }
+    }
+    while (combinados.size > MAXIMOS_MENSAJES_RECIENTES_AGENDAMIENTO) {
+        combinados.delete(combinados.keys().next().value);
+    }
+    return [...combinados.values()];
+}
+
 async function reanalizarMensajesRecientesAgendamiento(linea) {
     if (
         !linea ||
@@ -3208,9 +3449,7 @@ async function reanalizarMensajesRecientesAgendamiento(linea) {
         return { disponibles: 0, procesados: false };
     }
 
-    const mensajes = linea.mensajesRecientesAgendamiento instanceof Map
-        ? [...linea.mensajesRecientesAgendamiento.values()]
-        : [];
+    const mensajes = obtenerMensajesRecientesCombinados(linea);
     if (!mensajes.length) {
         return { disponibles: 0, procesados: true };
     }
@@ -3224,6 +3463,511 @@ async function reanalizarMensajesRecientesAgendamiento(linea) {
     );
     await resolverPendientesAgendamiento(linea, linea.socket);
     return { disponibles: mensajes.length, procesados: true };
+}
+
+function textoComparableIA(valor) {
+    return String(valor || '')
+        .normalize('NFD')
+        .replace(/\p{M}/gu, '')
+        .toLocaleLowerCase('es');
+}
+
+function textoContieneFraseIA(texto, frase) {
+    if (!texto || !frase) return false;
+    const esToken = caracter => /[\p{L}\p{N}_.-]/u.test(caracter || '');
+    let desde = 0;
+    while (desde <= texto.length - frase.length) {
+        const indice = texto.indexOf(frase, desde);
+        if (indice < 0) return false;
+        const antesValido = !esToken(frase[0]) ||
+            indice === 0 || !esToken(texto[indice - 1]);
+        const final = indice + frase.length;
+        const despuesValido = !esToken(frase.at(-1)) ||
+            final === texto.length || !esToken(texto[final]);
+        if (antesValido && despuesValido) return true;
+        desde = indice + 1;
+    }
+    return false;
+}
+
+function normalizarCuarentenaAnalisisIA(entrada, ahora = Date.now()) {
+    const unicas = new Map();
+    for (const item of Array.isArray(entrada) ? entrada : []) {
+        const marca = String(item?.marca || '').toLowerCase();
+        const hastaOriginal = Number(item?.hasta) || 0;
+        if (!/^[a-f0-9]{64}$/u.test(marca) || hastaOriginal <= ahora) continue;
+        const hasta = Math.min(
+            hastaOriginal,
+            ahora + DURACION_CUARENTENA_ANALISIS_IA_MS
+        );
+        unicas.set(marca, { marca, hasta });
+    }
+    return [...unicas.values()]
+        .sort((a, b) => a.hasta - b.hasta)
+        .slice(-MAXIMAS_MARCAS_CUARENTENA_ANALISIS_IA);
+}
+
+function ponerLoteEnCuarentenaAnalisisIA(linea, marcas) {
+    const ahora = Date.now();
+    const registros = normalizarCuarentenaAnalisisIA(
+        linea?.cuarentenaAnalisisIA,
+        ahora
+    );
+    const porMarca = new Map(registros.map(item => [item.marca, item]));
+    for (const marcaEntrada of Array.isArray(marcas) ? marcas : []) {
+        const marca = String(marcaEntrada || '').toLowerCase();
+        if (!/^[a-f0-9]{64}$/u.test(marca)) continue;
+        porMarca.set(marca, {
+            marca,
+            hasta: ahora + DURACION_CUARENTENA_ANALISIS_IA_MS
+        });
+    }
+    linea.cuarentenaAnalisisIA = [...porMarca.values()]
+        .sort((a, b) => a.hasta - b.hasta)
+        .slice(-MAXIMAS_MARCAS_CUARENTENA_ANALISIS_IA);
+    return linea.cuarentenaAnalisisIA.length;
+}
+
+function seleccionarMensajesContextualesIA(mensajes, palabrasClave, linea = null) {
+    const disparadores = (Array.isArray(palabrasClave) ? palabrasClave : [])
+        .map(textoComparableIA)
+        .filter(valor => valor.length >= 2);
+    const frasesBase = [
+        'usuario:', 'alias:', 'todo listo', 'ya esta', 'ya quedo',
+        'carga lista', 'carga hecha', 'carga realizada', 'carga acreditada',
+        'carga completada'
+    ];
+    const frases = [...new Set([...disparadores, ...frasesBase])];
+    const grupos = new Map();
+    for (const mensaje of Array.isArray(mensajes) ? mensajes : []) {
+        if (mensaje?.key?.fromMe !== true) continue;
+        const jidOriginal = normalizarJidDestinatario(
+            mensaje?.key?.remoteJid
+        );
+        const jidAlternativo = normalizarJidDestinatario(
+            mensaje?.key?.remoteJidAlt
+        );
+        let jid = [jidOriginal, jidAlternativo].find(esJidNumero) ||
+            jidOriginal || jidAlternativo;
+        if (esJidLid(jid) && linea?.mapeosActividadContactos) {
+            jid = linea.mapeosActividadContactos.get(jid) || jid;
+        }
+        if (!jid || jid === 'status@broadcast' || jid.endsWith('@g.us')) continue;
+        if (!grupos.has(jid)) grupos.set(jid, []);
+        grupos.get(jid).push(jid === jidOriginal ? mensaje : {
+            ...mensaje,
+            key: {
+                ...mensaje.key,
+                remoteJid: jid,
+                remoteJidAlt: jidOriginal || jidAlternativo || undefined
+            }
+        });
+    }
+
+    const unidadesPorChat = [];
+    for (const [jid, lista] of grupos) {
+        lista.sort((a, b) => (
+            normalizarTimestampActividadContactos(a?.messageTimestamp) -
+                normalizarTimestampActividadContactos(b?.messageTimestamp) ||
+            String(a?.key?.id || '').localeCompare(String(b?.key?.id || ''))
+        ));
+        const unidades = [];
+        for (let indice = 0; indice < lista.length; indice += 1) {
+            const texto = textoComparableIA(extraerTextoMensaje(lista[indice]));
+            if (!frases.some(frase => textoContieneFraseIA(texto, frase))) {
+                continue;
+            }
+            const mensajesUnidad = lista.slice(
+                Math.max(0, indice - 3),
+                Math.min(lista.length, indice + 2)
+            );
+            const disparador = lista[indice];
+            const idMensaje = String(disparador?.key?.id || '').trim();
+            const timestampUnidad = normalizarTimestampActividadContactos(
+                disparador?.messageTimestamp
+            );
+            const identidadUnidad = idMensaje
+                ? `id:${idMensaje}:${timestampUnidad || ''}`
+                : `fallback:${jid}:${timestampUnidad || ''}:${
+                    crypto.createHash('sha256')
+                        .update(extraerTextoMensaje(disparador))
+                        .digest('hex')
+                }`;
+            unidades.push({
+                jid,
+                mensajes: mensajesUnidad,
+                marca: crypto.createHash('sha256')
+                    .update(identidadUnidad)
+                    .digest('hex'),
+                timestamp: timestampUnidad
+            });
+        }
+        unidades.sort((a, b) => b.timestamp - a.timestamp);
+        if (unidades.length) unidadesPorChat.push({ jid, unidades });
+    }
+
+    unidadesPorChat.sort((a, b) => (
+        (b.unidades[0]?.timestamp || 0) - (a.unidades[0]?.timestamp || 0) ||
+        a.jid.localeCompare(b.jid)
+    ));
+    const unidadesJustas = [];
+    const profundidadMaxima = unidadesPorChat.reduce(
+        (maximo, item) => Math.max(maximo, item.unidades.length),
+        0
+    );
+    for (let profundidad = 0; profundidad < profundidadMaxima; profundidad += 1) {
+        for (const chat of unidadesPorChat) {
+            if (chat.unidades[profundidad]) {
+                unidadesJustas.push(chat.unidades[profundidad]);
+            }
+        }
+    }
+
+    const cuarentena = normalizarCuarentenaAnalisisIA(
+        linea?.cuarentenaAnalisisIA
+    );
+    if (linea) linea.cuarentenaAnalisisIA = cuarentena;
+    const marcasEnCuarentena = new Set(cuarentena.map(item => item.marca));
+    const unidadesEnCuarentena = unidadesJustas.filter(
+        unidad => marcasEnCuarentena.has(unidad.marca)
+    );
+    const unidadesDisponibles = unidadesJustas.filter(
+        unidad => !marcasEnCuarentena.has(unidad.marca)
+    );
+
+    const clavesTotales = new Set();
+    for (const unidad of unidadesJustas) {
+        for (const mensaje of unidad.mensajes) {
+            clavesTotales.add(`${mensaje?.key?.remoteJid || ''}\u0000${
+                mensaje?.key?.id || mensaje?.messageTimestamp || ''
+            }`);
+        }
+    }
+    const clavesEnCuarentena = new Set();
+    for (const unidad of unidadesEnCuarentena) {
+        for (const mensaje of unidad.mensajes) {
+            clavesEnCuarentena.add(`${mensaje?.key?.remoteJid || ''}\u0000${
+                mensaje?.key?.id || mensaje?.messageTimestamp || ''
+            }`);
+        }
+    }
+    const totalUnidades = unidadesDisponibles.length;
+    const marcaGuardada = /^[a-f0-9]{64}$/u.test(
+        linea?.marcaAnalisisIA || ''
+    ) ? linea.marcaAnalisisIA : null;
+    const indiceMarca = marcaGuardada
+        ? unidadesDisponibles.findIndex(unidad => unidad.marca === marcaGuardada)
+        : -1;
+    const cursorInicial = totalUnidades && indiceMarca >= 0
+        ? (indiceMarca + 1) % totalUnidades
+        : 0;
+    let marcaSiguiente = marcaGuardada;
+    const marcasLote = [];
+    const marcasPorMensajeId = new Map();
+    const seleccionados = [];
+    const vistos = new Set();
+    for (let paso = 0; paso < totalUnidades; paso += 1) {
+        const indiceUnidad = (cursorInicial + paso) % totalUnidades;
+        const unidad = unidadesDisponibles[indiceUnidad];
+        const nuevos = unidad.mensajes.filter(mensaje => {
+            const clave = `${mensaje?.key?.remoteJid || ''}\u0000${
+                mensaje?.key?.id || mensaje?.messageTimestamp || ''
+            }`;
+            return !vistos.has(clave);
+        });
+        if (
+            seleccionados.length > 0 &&
+            seleccionados.length + nuevos.length >
+                MAXIMOS_MENSAJES_POR_ANALISIS_IA
+        ) {
+            break;
+        }
+        for (const mensaje of nuevos) {
+            const clave = `${mensaje?.key?.remoteJid || ''}\u0000${
+                mensaje?.key?.id || mensaje?.messageTimestamp || ''
+            }`;
+            vistos.add(clave);
+            seleccionados.push(mensaje);
+        }
+        marcaSiguiente = unidad.marca;
+        marcasLote.push(unidad.marca);
+        for (const mensaje of unidad.mensajes) {
+            const id = String(mensaje?.key?.id || '').trim().slice(0, 240);
+            if (!id) continue;
+            if (!marcasPorMensajeId.has(id)) marcasPorMensajeId.set(id, new Set());
+            marcasPorMensajeId.get(id).add(unidad.marca);
+        }
+        if (seleccionados.length >= MAXIMOS_MENSAJES_POR_ANALISIS_IA) break;
+    }
+    seleccionados.sort((a, b) => (
+        normalizarTimestampActividadContactos(a?.messageTimestamp) -
+            normalizarTimestampActividadContactos(b?.messageTimestamp) ||
+        String(a?.key?.remoteJid || '').localeCompare(
+            String(b?.key?.remoteJid || '')
+        ) ||
+        String(a?.key?.id || '').localeCompare(String(b?.key?.id || ''))
+    ));
+    return {
+        mensajes: seleccionados.slice(0, MAXIMOS_MENSAJES_POR_ANALISIS_IA),
+        mensajesDisponibles: clavesTotales.size,
+        mensajesPendientes: Math.max(0, clavesTotales.size - vistos.size),
+        mensajesEnCuarentena: clavesEnCuarentena.size,
+        marcaSiguiente,
+        marcasLote,
+        marcasPorMensajeId
+    };
+}
+
+function obtenerEstadoAnalisisIA(lineaId = null) {
+    const progreso = tareaAnalisisIA?.progreso || ultimoAnalisisIA;
+    if (!progreso || (lineaId && progreso.lineaId !== lineaId)) return null;
+    return { ...progreso, activo: Boolean(tareaAnalisisIA) };
+}
+
+function iniciarAnalisisMensajesIA(linea) {
+    if (tareaAnalisisIA) {
+        throw new ErrorAgendamiento(
+            'ANALISIS_IA_ACTIVO',
+            'Ya hay una línea siendo analizada con IA.'
+        );
+    }
+    const socketInicial = linea.socket || null;
+    const generacionInicial = Number(linea.generacionConexion) || 0;
+    const jidInicial = normalizarJidDestinatario(linea.jid);
+    const analisisSigueVigente = () => (
+        lineas.get(linea.id) === linea &&
+        !linea.eliminando &&
+        linea.socket === socketInicial &&
+        (Number(linea.generacionConexion) || 0) === generacionInicial &&
+        normalizarJidDestinatario(linea.jid) === jidInicial
+    );
+    if (!runtimeIALocal.instalada()) {
+        throw new ErrorAgendamiento(
+            'IA_NO_INSTALADA',
+            'Primero descargá Qwen3 1.7B desde Agendamiento.'
+        );
+    }
+    const controlador = new AbortController();
+    const control = {
+        lineaId: linea.id,
+        controlador,
+        progreso: {
+            estado: 'preparando',
+            lineaId: linea.id,
+            lineaNombre: linea.nombre,
+            totalMensajes: 0,
+            mensajesDisponibles: 0,
+            mensajesPendientes: 0,
+            mensajesEnCuarentena: 0,
+            totalVentanas: 0,
+            procesadas: 0,
+            aprobadas: 0,
+            revisiones: 0,
+            descartadas: 0,
+            errores: 0,
+            iniciadoEn: new Date().toISOString(),
+            finalizadoEn: null,
+            error: null
+        }
+    };
+    tareaAnalisisIA = control;
+    ultimoAnalisisIA = { ...control.progreso };
+
+    (async () => {
+        if (!analisisSigueVigente()) {
+            throw new Error('La línea cambió de sesión antes de iniciar el análisis.');
+        }
+        const recientes = obtenerMensajesRecientesCombinados(linea);
+        const palabras = servicioAgendamiento
+            .obtenerConfiguracionBusqueda()
+            .palabrasClave;
+        const loteMensajes = seleccionarMensajesContextualesIA(
+            recientes,
+            palabras,
+            linea
+        );
+        const mensajes = loteMensajes.mensajes;
+        control.progreso.totalMensajes = mensajes.length;
+        control.progreso.mensajesDisponibles =
+            loteMensajes.mensajesDisponibles;
+        control.progreso.mensajesPendientes =
+            loteMensajes.mensajesPendientes;
+        control.progreso.mensajesEnCuarentena =
+            loteMensajes.mensajesEnCuarentena;
+        ultimoAnalisisIA = { ...control.progreso };
+        if (!mensajes.length) {
+            control.progreso.estado = loteMensajes.mensajesEnCuarentena > 0
+                ? 'en_cuarentena'
+                : 'sin_contexto';
+            return;
+        }
+        control.progreso.estado = 'iniciando_modelo';
+        ultimoAnalisisIA = { ...control.progreso };
+        const detenerInicio = () => runtimeIALocal.detener();
+        controlador.signal.addEventListener('abort', detenerInicio, {
+            once: true
+        });
+        try {
+            await runtimeIALocal.asegurarIniciada();
+        } finally {
+            controlador.signal.removeEventListener('abort', detenerInicio);
+        }
+        if (controlador.signal.aborted) {
+            const error = new Error('Análisis de IA cancelado.');
+            error.name = 'AbortError';
+            throw error;
+        }
+        control.progreso.estado = 'analizando';
+        ultimoAnalisisIA = { ...control.progreso };
+        const resolver = socketInicial
+            ? async (jid, contexto) => {
+                if (!analisisSigueVigente()) {
+                    throw new Error('La sesión cambió mientras se resolvía un número.');
+                }
+                const resultado = await resolverJidAgendamiento(
+                    linea,
+                    socketInicial,
+                    jid,
+                    contexto
+                );
+                if (!analisisSigueVigente()) {
+                    throw new Error('La sesión cambió mientras se resolvía un número.');
+                }
+                return resultado;
+            }
+            : undefined;
+        const detecciones = [];
+        let erroresConsecutivos = 0;
+        const marcasErroresConsecutivos = new Set();
+        const idsErroresConsecutivos = new Set();
+        await detectorUsuarioIA.analizarMensajes(mensajes, {
+            signal: controlador.signal,
+            continuarEnError: true,
+            onProgress: async avance => {
+                if (!analisisSigueVigente()) {
+                    throw new Error(
+                        'La línea cambió de sesión durante el análisis. No se guardó ninguna sugerencia.'
+                    );
+                }
+                control.progreso.totalVentanas = avance.total;
+                control.progreso.procesadas = avance.procesadas;
+                if (avance.error) {
+                    control.progreso.errores += 1;
+                    erroresConsecutivos += 1;
+                    for (const id of Array.isArray(avance.idsMensajes)
+                        ? avance.idsMensajes
+                        : []) {
+                        idsErroresConsecutivos.add(id);
+                        for (const marca of loteMensajes
+                            .marcasPorMensajeId.get(id) || []) {
+                            marcasErroresConsecutivos.add(marca);
+                        }
+                    }
+                    if (erroresConsecutivos >= MAXIMOS_ERRORES_CONSECUTIVOS_IA) {
+                        const marcasCuarentena = marcasErroresConsecutivos.size
+                            ? [...marcasErroresConsecutivos]
+                            : loteMensajes.marcasLote.slice(
+                                0,
+                                MAXIMOS_ERRORES_CONSECUTIVOS_IA
+                            );
+                        if (marcasCuarentena.length) {
+                            ponerLoteEnCuarentenaAnalisisIA(
+                                linea,
+                                marcasCuarentena
+                            );
+                            linea.marcaAnalisisIA = loteMensajes.marcaSiguiente;
+                            guardarLineas();
+                            control.progreso.loteEnCuarentena = true;
+                            control.progreso.mensajesEnCuarentena =
+                                idsErroresConsecutivos.size;
+                        }
+                        throw new Error(
+                            'La IA acumuló tres errores consecutivos. Esta tanda quedó en cuarentena por 30 minutos y el próximo análisis continuará con la siguiente.'
+                        );
+                    }
+                } else if (avance.resultado?.clasificacion === 'ninguno') {
+                    erroresConsecutivos = 0;
+                    marcasErroresConsecutivos.clear();
+                    idsErroresConsecutivos.clear();
+                    control.progreso.descartadas += 1;
+                } else if (avance.resultado) {
+                    erroresConsecutivos = 0;
+                    marcasErroresConsecutivos.clear();
+                    idsErroresConsecutivos.clear();
+                    detecciones.push(avance.resultado);
+                }
+                ultimoAnalisisIA = { ...control.progreso };
+            }
+        });
+        if (!analisisSigueVigente()) {
+            throw new Error(
+                'La línea cambió de sesión al terminar el análisis. No se guardó ninguna sugerencia.'
+            );
+        }
+        // Un chat puede aparecer en varias ventanas. Sólo la detección fuerte
+        // más reciente llega al servicio, para no autoaprobar una credencial
+        // histórica y mandar la nueva a revisión.
+        const mejoresPorChat = new Map();
+        for (const deteccion of detecciones) {
+            const chatId = normalizarJidDestinatario(deteccion?.chatId);
+            if (!chatId) continue;
+            const fecha = Math.max(
+                0,
+                ...(Array.isArray(deteccion.evidencias)
+                    ? deteccion.evidencias.map(item => Number(item?.timestampMs) || 0)
+                    : [])
+            );
+            const anterior = mejoresPorChat.get(chatId);
+            if (!anterior || fecha >= anterior.fecha) {
+                mejoresPorChat.set(chatId, { fecha, deteccion });
+            }
+        }
+        const seleccionadas = [...mejoresPorChat.values()]
+            .sort((a, b) => a.fecha - b.fecha)
+            .map(item => item.deteccion);
+        if (seleccionadas.length) {
+            const registro = await servicioAgendamiento.registrarDeteccionesIA(
+                describirLineaParaAgendamiento(linea),
+                seleccionadas,
+                resolver,
+                {
+                    signal: controlador.signal,
+                    esVigente: analisisSigueVigente
+                }
+            );
+            if (controlador.signal.aborted || !analisisSigueVigente()) {
+                throw new Error(
+                    'La línea cambió de sesión antes de confirmar las sugerencias.'
+                );
+            }
+            control.progreso.aprobadas += Number(registro.aprobadas) || 0;
+            control.progreso.revisiones += Number(registro.revisiones) || 0;
+            control.progreso.descartadas += Number(registro.omitidas) || 0;
+        }
+        linea.marcaAnalisisIA = loteMensajes.marcaSiguiente;
+        guardarLineas();
+        control.progreso.estado = 'completado';
+    })().catch(error => {
+        const cancelado = controlador.signal.aborted || error?.name === 'AbortError';
+        control.progreso.estado = cancelado ? 'cancelado' : 'fallido';
+        control.progreso.error = cancelado
+            ? null
+            : String(error?.message || 'No se pudo completar el análisis.').slice(0, 300);
+    }).finally(() => {
+        control.progreso.finalizadoEn = new Date().toISOString();
+        ultimoAnalisisIA = { ...control.progreso };
+        if (tareaAnalisisIA === control) tareaAnalisisIA = null;
+    });
+
+    return { ...control.progreso, activo: true };
+}
+
+function detenerAnalisisMensajesIA(lineaId) {
+    if (!tareaAnalisisIA || tareaAnalisisIA.lineaId !== lineaId) return false;
+    tareaAnalisisIA.progreso.estado = 'cancelando';
+    tareaAnalisisIA.controlador.abort();
+    ultimoAnalisisIA = { ...tareaAnalisisIA.progreso };
+    return true;
 }
 
 function registrarVistasParaAgendamiento(linea, socket, actualizaciones) {
@@ -4139,6 +4883,15 @@ function guardarLineas() {
     const datos = Array.from(lineas.values()).map(linea => ({
         id: linea.id,
         nombre: linea.nombre,
+        identidadAgendamiento: /^[a-f0-9]{64}$/u.test(
+            linea.identidadAgendamiento || ''
+        ) ? linea.identidadAgendamiento : null,
+        marcaAnalisisIA: /^[a-f0-9]{64}$/u.test(
+            linea.marcaAnalisisIA || ''
+        ) ? linea.marcaAnalisisIA : null,
+        cuarentenaAnalisisIA: normalizarCuarentenaAnalisisIA(
+            linea.cuarentenaAnalisisIA
+        ),
         ordenConexion: Number(linea.ordenConexion) || 0,
         etiqueta: normalizarEtiqueta(linea.etiqueta),
         ultimaConexion: linea.ultimaConexion || null,
@@ -4251,6 +5004,15 @@ function cargarLineasGuardadas() {
                     : normalizarEtiqueta(datosLinea.etiqueta),
                 socket: null,
                 jid: null,
+                identidadAgendamiento: /^[a-f0-9]{64}$/u.test(
+                    datosLinea.identidadAgendamiento || ''
+                ) ? datosLinea.identidadAgendamiento : null,
+                marcaAnalisisIA: /^[a-f0-9]{64}$/u.test(
+                    datosLinea.marcaAnalisisIA || ''
+                ) ? datosLinea.marcaAnalisisIA : null,
+                cuarentenaAnalisisIA: normalizarCuarentenaAnalisisIA(
+                    datosLinea.cuarentenaAnalisisIA
+                ),
                 qr: null,
                 estado: reconexionBloqueada ? 'requiere_intervencion' : 'iniciando',
                 iniciando: false,
@@ -5900,7 +6662,9 @@ async function iniciarWhatsApp(lineaId) {
                 linea.ultimoError = debeVerificarEstabilidad
                     ? `Conexión restablecida. Verificando estabilidad antes de reiniciar el contador de intentos.`
                     : null;
-                linea.jid = jidNormalizedUser(sock.user.id);
+                const jidConectado = jidNormalizedUser(sock.user.id);
+                actualizarIdentidadAgendamientoLinea(linea, jidConectado);
+                linea.jid = jidConectado;
                 guardarLineas();
                 programarConfirmacionEstabilidad(
                     lineaId,
@@ -7582,10 +8346,11 @@ function validarConfiguracionComun(req, rutaTemporalFoto, imagenObligatoria = tr
 
 function codigoHttpErrorAgendamiento(error) {
     const codigo = String(error?.codigo || '');
-    if (codigo === 'CUENTA_NO_EXISTE') return 404;
+    if (['CUENTA_NO_EXISTE', 'REVISION_IA_NO_EXISTE'].includes(codigo)) return 404;
     if (
         codigo === 'SINCRONIZACION_ACTIVA' ||
-        codigo === 'OAUTH_EN_CURSO'
+        codigo === 'OAUTH_EN_CURSO' ||
+        codigo === 'ANALISIS_IA_ACTIVO'
     ) return 409;
     if (
         codigo.startsWith('GOOGLE_') ||
@@ -7644,11 +8409,26 @@ function transformarVistaAgendamiento(vista, linea = null) {
         const fuentes = [];
         if (candidato.senales?.vioEstado) fuentes.push('Vio tu estado');
         if (candidato.senales?.publicoEstado) fuentes.push('Publicó un estado');
-        if (candidato.usuario) fuentes.unshift('Mensaje de usuario');
+        if (candidato.usuario) {
+            const confianza = Number(candidato.usuarioConfianza);
+            fuentes.unshift(
+                candidato.usuarioFuente === 'ia'
+                    ? `IA local${Number.isFinite(confianza) ? ` · estimación ${Math.round(confianza)}%` : ''}`
+                    : candidato.usuarioFuente === 'manual'
+                        ? 'Revisión manual'
+                        : 'Regla estricta'
+            );
+        }
 
         return {
             telefono: candidato.telefono,
             usuario: candidato.usuario,
+            usuarioFuente: candidato.usuarioFuente || null,
+            usuarioConfianza: Number.isFinite(Number(candidato.usuarioConfianza))
+                ? Number(candidato.usuarioConfianza)
+                : null,
+            usuarioBloqueadoManual:
+                candidato.usuarioBloqueadoManual === true,
             nombre: candidato.nombreObjetivo,
             mutuo: candidato.mutuo === true,
             estado: resultadoCandidatoEstaSincronizado(candidato)
@@ -7679,7 +8459,8 @@ function transformarVistaAgendamiento(vista, linea = null) {
             totalSenales: Number(vista?.totales?.candidatos) || 0,
             mostrados: candidatos.length,
             jidsPendientes: Number(vista?.totales?.jidsPendientes) || 0,
-            usuariosPendientesJid
+            usuariosPendientesJid,
+            revisionesIA: Number(vista?.totales?.revisionesIA) || 0
         },
         proceso: progreso ? {
             ...progreso,
@@ -7694,6 +8475,27 @@ function transformarVistaAgendamiento(vista, linea = null) {
                             : 'Procesando contactos uno a uno.'),
             actual: progreso.actual || null
         } : null,
+        ia: {
+            modelo: runtimeIALocal.obtenerEstado(),
+            analisis: obtenerEstadoAnalisisIA(vista?.linea?.id),
+            revisiones: (Array.isArray(vista?.revisionesIA)
+                ? vista.revisionesIA
+                : [])
+                .slice(0, 500)
+                .map(item => ({
+                    id: item.id,
+                    telefono: item.telefono,
+                    usuario: item.usuario,
+                    confianza: item.confianza,
+                    tipoEvidencia: item.tipoEvidencia,
+                    detectadaEn: item.detectadaEn,
+                    evidencias: (Array.isArray(item.evidencias)
+                        ? item.evidencias
+                        : []).slice(0, 3),
+                    pendienteResolucion: item.pendienteResolucion === true
+                })),
+            totalRevisiones: Number(vista?.totales?.revisionesIA) || 0
+        },
         candidatos
     };
 }
@@ -7713,10 +8515,17 @@ app.get('/agendamiento', (req, res) => {
                 agendados: 0,
                 mutuos: 0,
                 totalSenales: 0,
-                mostrados: 0
+                mostrados: 0,
+                revisionesIA: 0
             },
             proceso: null,
             historial: null,
+            ia: {
+                modelo: runtimeIALocal.obtenerEstado(),
+                analisis: obtenerEstadoAnalisisIA(),
+                revisiones: [],
+                totalRevisiones: 0
+            },
             candidatos: []
         });
     }
@@ -7735,6 +8544,143 @@ app.get('/agendamiento', (req, res) => {
         ));
     } catch (error) {
         return responderErrorAgendamiento(res, error);
+    }
+});
+
+app.get('/agendamiento/ia/estado', (_req, res) => {
+    res.json({
+        modelo: runtimeIALocal.obtenerEstado(),
+        analisis: obtenerEstadoAnalisisIA()
+    });
+});
+
+app.post('/agendamiento/ia/descargar', async (req, res) => {
+    let estado = runtimeIALocal.obtenerEstado();
+    const reinstalar = req.body?.reinstalar === true;
+    if (estado.instalada && !reinstalar) {
+        return res.json({ mensaje: 'Qwen3 1.7B ya está instalado.', modelo: estado });
+    }
+    if (estado.instalada && reinstalar) {
+        if (tareaAnalisisIA) {
+            return res.status(409).json({
+                error: 'Detené el análisis antes de reinstalar la IA local.',
+                codigo: 'ANALISIS_IA_ACTIVO'
+            });
+        }
+        try {
+            await runtimeIALocal.desinstalar();
+            estado = runtimeIALocal.obtenerEstado();
+        } catch (error) {
+            return responderErrorAgendamiento(res, error);
+        }
+    }
+    const descarga = runtimeIALocal.descargar();
+    const estadoIniciado = runtimeIALocal.obtenerEstado();
+    descarga.catch(error => {
+        if (error?.codigo !== 'DESCARGA_CANCELADA') {
+            console.error('No se pudo instalar la IA local:', error?.message);
+        }
+    });
+    if (estadoIniciado.estado === 'error') {
+        return res.status(400).json({
+            error: estadoIniciado.error || estadoIniciado.mensaje,
+            codigo: 'DESCARGA_IA_NO_INICIADA',
+            modelo: estadoIniciado
+        });
+    }
+    res.status(202).json({
+        mensaje: 'La descarga segura de Qwen3 1.7B comenzó.',
+        modelo: estadoIniciado
+    });
+});
+
+app.post('/agendamiento/ia/pausar-descarga', (_req, res) => {
+    if (!runtimeIALocal.detenerDescarga()) {
+        return res.status(409).json({
+            error: 'No hay una descarga de IA activa.',
+            codigo: 'DESCARGA_IA_INACTIVA'
+        });
+    }
+    res.json({ mensaje: 'La descarga se está pausando.' });
+});
+
+app.delete('/agendamiento/ia', async (_req, res) => {
+    if (tareaAnalisisIA) {
+        return res.status(409).json({
+            error: 'Detené el análisis antes de eliminar la IA local.',
+            codigo: 'ANALISIS_IA_ACTIVO'
+        });
+    }
+    try {
+        const modelo = await runtimeIALocal.desinstalar();
+        res.json({ mensaje: 'La IA local fue eliminada de este equipo.', modelo });
+    } catch (error) {
+        responderErrorAgendamiento(res, error);
+    }
+});
+
+app.post('/agendamiento/lineas/:id/ia/analizar', (req, res) => {
+    const linea = lineas.get(req.params.id);
+    if (!linea) return res.status(404).json({ error: 'La línea no existe.' });
+    if (agendamientoEstaOcupado()) {
+        return res.status(409).json({
+            error: 'Terminá el proceso de agendamiento o IA que ya está activo.',
+            codigo: 'ANALISIS_IA_ACTIVO'
+        });
+    }
+    try {
+        const analisis = iniciarAnalisisMensajesIA(linea);
+        res.status(202).json({
+            mensaje: `Qwen3 comenzó a revisar los mensajes recientes de ${linea.nombre}.`,
+            analisis
+        });
+    } catch (error) {
+        responderErrorAgendamiento(res, error);
+    }
+});
+
+app.post('/agendamiento/lineas/:id/ia/detener', (req, res) => {
+    const linea = lineas.get(req.params.id);
+    if (!linea) return res.status(404).json({ error: 'La línea no existe.' });
+    if (!detenerAnalisisMensajesIA(linea.id)) {
+        return res.status(409).json({
+            error: 'Esta línea no tiene un análisis de IA activo.',
+            codigo: 'ANALISIS_IA_INACTIVO'
+        });
+    }
+    res.json({ mensaje: 'Se solicitó detener el análisis local.' });
+});
+
+app.post('/agendamiento/lineas/:id/ia/revisiones/:revisionId', async (req, res) => {
+    const linea = lineas.get(req.params.id);
+    if (!linea) return res.status(404).json({ error: 'La línea no existe.' });
+    if (agendamientoEstaOcupado()) {
+        return res.status(409).json({
+            error: 'Terminá el proceso activo antes de resolver sugerencias.',
+            codigo: 'SINCRONIZACION_ACTIVA'
+        });
+    }
+    const resolver = linea.socket
+        ? (jid, contexto) => resolverJidAgendamiento(
+            linea,
+            linea.socket,
+            jid,
+            contexto
+        )
+        : undefined;
+    try {
+        const resultado = await servicioAgendamiento.resolverRevisionIA(
+            describirLineaParaAgendamiento(linea),
+            req.params.revisionId,
+            {
+                accion: req.body?.accion,
+                usuario: req.body?.usuario
+            },
+            resolver
+        );
+        res.json({ mensaje: 'La sugerencia quedó resuelta.', resultado });
+    } catch (error) {
+        responderErrorAgendamiento(res, error);
     }
 });
 
@@ -8058,6 +9004,9 @@ app.post('/lineas', (req, res) => {
         etiqueta: 'indefinida',
         socket: null,
         jid: null,
+        identidadAgendamiento: null,
+        marcaAnalisisIA: null,
+        cuarentenaAnalisisIA: [],
         qr: null,
         estado: 'iniciando',
         iniciando: false,
@@ -8330,7 +9279,7 @@ app.post('/progreso/alto-total', (req, res) => {
 });
 
 function obtenerActualizador() {
-    const actualizador = global.autostatuesUpdater;
+    const actualizador = global.zerooneUpdater;
 
     if (!actualizador || typeof actualizador.obtenerEstado !== 'function') {
         return null;
@@ -9292,9 +10241,12 @@ app.delete('/lineas/:id', async (req, res) => {
         'La preparación se canceló porque la línea fue eliminada.'
     );
 
-    if (obtenerProcesoAgendamientoActivo()?.lineaId === id) {
+    if (
+        obtenerProcesoAgendamientoActivo()?.lineaId === id ||
+        tareaAnalisisIA?.lineaId === id
+    ) {
         return res.status(409).json({
-            error: 'Detené el agendamiento de esta línea antes de eliminarla.',
+            error: 'Detené el agendamiento o análisis IA de esta línea antes de eliminarla.',
             codigo: 'AGENDAMIENTO_ACTIVO'
         });
     }
@@ -9314,6 +10266,22 @@ app.delete('/lineas/:id', async (req, res) => {
     linea.eliminando = true;
     invalidarConexionActual(linea);
     limpiarActividadContactos(linea);
+    if (linea.temporizadorResolverPendientesAgendamiento) {
+        clearTimeout(linea.temporizadorResolverPendientesAgendamiento);
+        linea.temporizadorResolverPendientesAgendamiento = null;
+    }
+    let temporizadorDrenaje = null;
+    await Promise.race([
+        Promise.allSettled([
+            Promise.resolve(linea.promesaIngestaAgendamiento),
+            Promise.resolve(linea.promesaResolverPendientesAgendamiento)
+        ]),
+        new Promise(resolve => {
+            temporizadorDrenaje = setTimeout(resolve, 5000);
+            temporizadorDrenaje.unref?.();
+        })
+    ]);
+    if (temporizadorDrenaje) clearTimeout(temporizadorDrenaje);
 
     if (linea.temporizadorReconexion) {
         clearTimeout(linea.temporizadorReconexion);
@@ -9330,6 +10298,19 @@ app.delete('/lineas/:id', async (req, res) => {
 
     linea.socket = null;
     lineas.delete(id);
+    try {
+        obtenerAlmacenMensajesRecientes()?.eliminarLinea(id);
+    } catch (error) {
+        console.warn('No se pudo limpiar el contexto local de la línea:', error?.message);
+    }
+    try {
+        servicioAgendamiento.eliminarLinea(
+            { id, nombre: linea.nombre },
+            { bloquearRecreacion: true }
+        );
+    } catch (error) {
+        console.warn('No se pudieron limpiar los datos de agendamiento de la línea:', error?.message);
+    }
     guardarLineas();
 
     try {
@@ -9365,6 +10346,9 @@ app.use((error, req, res, next) => {
 });
 
 process.once('exit', () => {
+    runtimeIALocal.detener();
+    almacenMensajesRecientes?.cerrar();
+    almacenMensajesRecientes = null;
     try {
         servicioAgendamiento.cerrar();
     } catch (error) {
@@ -9388,7 +10372,7 @@ process.once('exit', () => {
 
 app.listen(PUERTO_SERVIDOR, '127.0.0.1', () => {
     console.log(
-        `AutoStatues funcionando en http://127.0.0.1:${PUERTO_SERVIDOR}`
+        'ZeroOne está listo.'
     );
 
     cargarConfiguracion();

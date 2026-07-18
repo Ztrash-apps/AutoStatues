@@ -106,7 +106,7 @@ async function iniciarServidor(rutaDatos) {
 
         const revisarInicio = fragmento => {
             salida += fragmento.toString();
-            if (salida.includes(`http://127.0.0.1:${puerto}`)) {
+            if (salida.includes('ZeroOne está listo.')) {
                 clearTimeout(temporizador);
                 resolve();
             }
@@ -177,7 +177,7 @@ function eliminarTemporalSeguro(rutaTemporal) {
     fs.rmSync(objetivo, { recursive: true, force: true });
 }
 
-test('middleware defensivo de AutoStatues (sin WhatsApp real)', async t => {
+test('middleware defensivo de ZeroOne (sin WhatsApp real)', async t => {
     const rutaDatos = fs.mkdtempSync(
         path.join(os.tmpdir(), 'autostatues-internal-')
     );

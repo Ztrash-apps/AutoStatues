@@ -5,6 +5,13 @@ sesiones/
 uploads/
 programados/
 agendamiento/
+ia-local/
+*.gguf
+*.part
+*.pfx
+*.p12
+*.cer
+certificates/
 proteccion-publicacion.json
 idempotencia-publicacion.json
 .env

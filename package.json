@@ -1,15 +1,20 @@
 {
-  "name": "autostatues",
-  "version": "1.1.2",
+  "name": "zeroone",
+  "version": "1.1.3",
   "private": true,
-  "description": "Aplicación de escritorio para gestionar estados de WhatsApp",
+  "description": "ZeroOne, CRM de escritorio para gestionar estados y contactos de WhatsApp",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
-    "test:internal": "node --test tests/internal-safety.test.js tests/emergency-stop.test.js tests/image-compression.test.js tests/agendamiento.test.js tests/history-sync-queue.test.js",
+    "test:internal": "node --test tests/internal-safety.test.js tests/emergency-stop.test.js tests/image-compression.test.js tests/agendamiento.test.js tests/history-sync-queue.test.js tests/ai-username-detector.test.js tests/local-ai-runtime.test.js tests/recent-message-store.test.js",
+    "build:icon": "node scripts/build-icon.js",
+    "prebuild": "npm run build:icon",
     "build": "electron-builder --win --x64",
-    "release": "electron-builder --win --x64 --publish always"
+    "prebuild:signed": "npm run build:icon",
+    "build:signed": "electron-builder --win --x64 --config.win.forceCodeSigning=true",
+    "prerelease": "npm run build:icon",
+    "release": "electron-builder --win --x64 --publish always --config.win.forceCodeSigning=true"
   },
   "keywords": [
     "electron",
@@ -17,6 +22,7 @@
     "estados"
   ],
   "author": "ZABO",
+  "copyright": "Copyright © 2026 ZABO",
   "license": "ISC",
   "dependencies": {
     "@whiskeysockets/baileys": "^7.0.0-rc13",
@@ -34,19 +40,24 @@
   },
   "build": {
     "appId": "com.zabo.autostatues",
-    "productName": "AutoStatues",
+    "productName": "ZeroOne",
+    "executableName": "ZeroOne",
     "asar": true,
     "asarUnpack": [
       "node_modules/sharp/**/*",
       "node_modules/@img/**/*"
     ],
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "build"
     },
     "files": [
       "main.js",
+      "preload.js",
+      "THIRD_PARTY_NOTICES.txt",
       "src/**/*",
       "public/**/*",
+      "font/**/*",
       "package.json",
       "!dist/**/*",
       "!sesiones/**/*",
@@ -54,13 +65,15 @@
       "!programados/**/*",
       "!**/*.log"
     ],
-    "extraResources": [
-      {
-        "from": "preload.js",
-        "to": "preload.js"
-      }
-    ],
     "win": {
+      "icon": "build/icon.ico",
+      "verifyUpdateCodeSignature": true,
+      "signtoolOptions": {
+        "signingHashAlgorithms": [
+          "sha256"
+        ],
+        "rfc3161TimeStampServer": "http://timestamp.digicert.com"
+      },
       "target": [
         {
           "target": "nsis",
@@ -69,7 +82,7 @@
           ]
         }
       ],
-      "artifactName": "AutoStatues-Setup-${version}.${ext}"
+      "artifactName": "ZeroOne-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -77,7 +90,10 @@
       "perMachine": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "AutoStatues",
+      "shortcutName": "ZeroOne",
+      "uninstallDisplayName": "ZeroOne ${version}",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
       "deleteAppDataOnUninstall": false
     },
     "publish": [
