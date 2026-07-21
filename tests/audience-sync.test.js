@@ -29,6 +29,9 @@ function cargarBackendAislado(rutaDatos) {
                 resincronizarAudienciaEstados,
                 cancelarReintentoAudiencia,
                 finalizarAudienciaConfirmadaLocalmente,
+                registrarVisualizacionesEstadosActivos,
+                obtenerVistaEstadosActivos,
+                estadosActivos,
                 lineas,
                 servicioAgendamiento,
                 runtimeIALocal
@@ -64,6 +67,7 @@ function crearLinea(socket) {
         etiqueta: 'activa',
         estado: 'conectado',
         socket,
+        jid: '595981000000@s.whatsapp.net',
         eliminando: false,
         modoHistorialAgendamiento: false,
         audienciaEstadosCargada: true,
@@ -74,10 +78,100 @@ function crearLinea(socket) {
         intentosResincronizacionAudiencia: 0,
         temporizadorAudiencia: null,
         promesaContactosEstado: Promise.resolve(),
+        actividadContactosCargada: true,
+        ultimaInteraccionContactos: new Map(),
+        mapeosActividadContactos: new Map(),
+        promesaActividadContactos: Promise.resolve(),
         revisionPriorizacionAudiencia: 0,
         cacheResumenPriorizacionAudiencia: null
     };
 }
+
+test('cuenta una sola visualización por persona y estado', () => {
+    const rutaDatos = fs.mkdtempSync(
+        path.join(os.tmpdir(), 'zeroone-status-views-')
+    );
+    let backend = null;
+
+    try {
+        backend = cargarBackendAislado(rutaDatos);
+        const socket = {};
+        const linea = crearLinea(socket);
+        const ahora = Date.now();
+        backend.lineas.set(linea.id, linea);
+        backend.estadosActivos.set('publicacion-1', {
+            id: 'publicacion-1',
+            fechaInicio: new Date(ahora).toISOString(),
+            expiraEn: new Date(ahora + 3600000).toISOString(),
+            texto: 'Estado de prueba',
+            lineas: [{
+                lineaId: linea.id,
+                nombre: linea.nombre,
+                numero: '595981000000',
+                clave: {
+                    id: 'estado-1',
+                    remoteJid: 'status@broadcast',
+                    fromMe: true
+                },
+                meta: {
+                    id: 'estado-1',
+                    remoteJid: 'status@broadcast',
+                    statusJidList: []
+                },
+                publicadoEn: new Date(ahora).toISOString(),
+                expiraEn: new Date(ahora + 3600000).toISOString(),
+                visualizadores: [],
+                estado: 'activo',
+                error: null,
+                eliminadoEn: null,
+                claveRevocacion: null,
+                revocacionConAudiencia: false
+            }]
+        });
+
+        const vista = {
+            key: {
+                id: 'estado-1',
+                remoteJid: 'status@broadcast'
+            },
+            receipt: {
+                readTimestamp: 123,
+                userJid: '595982222222@s.whatsapp.net'
+            }
+        };
+
+        assert.equal(
+            backend.registrarVisualizacionesEstadosActivos(
+                linea,
+                socket,
+                [vista, vista]
+            ),
+            1
+        );
+        assert.equal(
+            backend.registrarVisualizacionesEstadosActivos(
+                linea,
+                socket,
+                [vista]
+            ),
+            0
+        );
+
+        const estado = backend.obtenerVistaEstadosActivos();
+        assert.equal(estado.resumen.visualizacionesTotales, 1);
+        assert.equal(estado.publicaciones[0].visualizaciones, 1);
+        assert.equal(estado.publicaciones[0].lineas[0].visualizaciones, 1);
+        assert.match(
+            backend.estadosActivos.get('publicacion-1')
+                .lineas[0].visualizadores[0],
+            /^[a-f0-9]{64}$/u
+        );
+    } finally {
+        backend?.servicioAgendamiento?.cerrar();
+        backend?.runtimeIALocal?.detener();
+        fs.rmSync(rutaDatos, { recursive: true, force: true });
+    }
+});
 
 function crearDiferida() {
     let resolver;
@@ -129,7 +223,7 @@ test('la audiencia aísla colecciones y conserva una recuperación parcial', asy
     }
 });
 
-test('el IQ de privacidad completa la audiencia si sólo falla regular_high', async () => {
+test('el IQ valida la privacidad guardada si falla regular_high', async () => {
     const rutaDatos = fs.mkdtempSync(
         path.join(os.tmpdir(), 'zeroone-audience-iq-')
     );
@@ -154,6 +248,11 @@ test('el IQ de privacidad completa la audiencia si sólo falla regular_high', as
             fetchPrivacySettings: async () => ({ status: 'contacts' })
         };
         linea = crearLinea(socket);
+        linea.privacidadEstados = {
+            modo: 2,
+            usuarios: [],
+            usuariosInvalidos: 0
+        };
         backend.lineas.set(linea.id, linea);
 
         await backend.resincronizarAudienciaEstados(linea, socket);
