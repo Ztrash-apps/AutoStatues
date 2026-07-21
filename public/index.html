@@ -18,6 +18,14 @@
 
     <svg class="svg-sprite" aria-hidden="true" focusable="false">
         <symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.73a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92z"/></symbol>
+        <symbol id="i-nav-home" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="4.5" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="11" width="7" height="9.5" rx="1.6"/></symbol>
+        <symbol id="i-nav-states" viewBox="0 0 24 24"><path d="M5 3.5h10l4 4v13H5z"/><path d="M15 3.5v4h4"/><circle cx="9" cy="10" r="1.25"/><path d="m7 18 3.5-4 2.6 2.7 2-2 2 3.3"/></symbol>
+        <symbol id="i-nav-active" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none"/><path d="M8.7 8.7a4.7 4.7 0 0 0 0 6.6M15.3 8.7a4.7 4.7 0 0 1 0 6.6M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8"/></symbol>
+        <symbol id="i-nav-lines" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="5.5" rx="1.8"/><rect x="3.5" y="15" width="17" height="5.5" rx="1.8"/><circle cx="7" cy="6.25" r=".85" fill="currentColor" stroke="none"/><circle cx="7" cy="17.75" r=".85" fill="currentColor" stroke="none"/><path d="M11 6.25h6M11 17.75h6M7 9v6M17 9v6"/></symbol>
+        <symbol id="i-nav-agenda" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.5"/><path d="M3.5 20v-1.5A4.5 4.5 0 0 1 8 14h2a4.5 4.5 0 0 1 4.5 4.5V20M17 7v8M13 11h8"/></symbol>
+        <symbol id="i-nav-history" viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.4-5.9L3.5 8.5"/><path d="M3.5 3.5v5h5M12 7.5V12l3.2 2"/></symbol>
+        <symbol id="i-nav-settings" viewBox="0 0 24 24"><path d="M4 6h4M12 6h8M4 12h9M17 12h3M4 18h2M10 18h10"/><circle cx="10" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/></symbol>
+        <symbol id="i-nav-collapse" viewBox="0 0 24 24"><path d="M7 4v16M17 7l-5 5 5 5"/></symbol>
         <symbol id="i-dashboard" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></symbol>
         <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></symbol>
         <symbol id="i-lines" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></symbol>
@@ -82,39 +90,39 @@
                     aria-controls="app-sidebar"
                     aria-expanded="true"
                 >
-                    <svg class="icon"><use href="#i-sidebar-toggle"></use></svg>
+                    <svg class="icon"><use href="#i-nav-collapse"></use></svg>
                 </button>
             </div>
 
             <nav class="nav">
                 <button class="nav-button active" data-section="dashboard" title="Inicio" aria-label="Inicio">
-                    <svg class="icon"><use href="#i-dashboard"></use></svg>
+                    <svg class="icon nav-icon"><use href="#i-nav-home"></use></svg>
                     <span class="nav-label">Inicio</span>
                 </button>
                 <button class="nav-button" data-section="estados" title="Estados" aria-label="Estados">
-                    <svg class="icon"><use href="#i-image"></use></svg>
+                    <svg class="icon nav-icon"><use href="#i-nav-states"></use></svg>
                     <span class="nav-label">Estados</span>
                 </button>
                 <button class="nav-button" data-section="activos" title="Estados activos" aria-label="Estados activos">
-                    <svg class="icon"><use href="#i-layers"></use></svg>
+                    <svg class="icon nav-icon"><use href="#i-nav-active"></use></svg>
                     <span class="nav-label">Estados activos</span>
                     <span class="nav-count" id="nav-active-count">0</span>
                 </button>
                 <button class="nav-button" data-section="lineas" title="Líneas" aria-label="Líneas">
-                    <svg class="icon"><use href="#i-lines"></use></svg>
+                    <svg class="icon nav-icon"><use href="#i-nav-lines"></use></svg>
                     <span class="nav-label">Líneas</span>
                     <span class="nav-count" id="nav-line-count">0</span>
                 </button>
                 <button class="nav-button" data-section="agendamiento" title="Agendamiento" aria-label="Agendamiento">
-                    <svg class="icon"><use href="#i-users"></use></svg>
+                    <svg class="icon nav-icon"><use href="#i-nav-agenda"></use></svg>
                     <span class="nav-label">Agendamiento</span>
                 </button>
                 <button class="nav-button" data-section="historial" title="Historial" aria-label="Historial">
-                    <svg class="icon"><use href="#i-history"></use></svg>
+                    <svg class="icon nav-icon"><use href="#i-nav-history"></use></svg>
                     <span class="nav-label">Historial</span>
                 </button>
                 <button class="nav-button" data-section="configuracion" title="Configuración" aria-label="Configuración">
-                    <svg class="icon"><use href="#i-settings"></use></svg>
+                    <svg class="icon nav-icon"><use href="#i-nav-settings"></use></svg>
                     <span class="nav-label">Configuración</span>
                 </button>
             </nav>
@@ -122,7 +130,7 @@
             <div class="update-panel">
                 <div class="update-panel-header">
                     <span class="update-panel-title title-with-icon"><svg class="icon"><use href="#i-update"></use></svg><span>Actualizaciones</span></span>
-                    <span id="update-version" class="update-version">v1.1.1</span>
+                    <span id="update-version" class="update-version">v1.5.2</span>
                 </div>
 
                 <p id="update-message" class="update-message">
@@ -154,7 +162,15 @@
 
         <main class="main">
             <header class="topbar">
-                <h1 id="page-title">Mis Estados Programados</h1>
+                <div class="topbar-heading">
+                    <span class="topbar-section-mark" aria-hidden="true">
+                        <span></span>
+                    </span>
+                    <div class="topbar-heading-copy">
+                        <span class="topbar-eyebrow">ZeroOne // Control</span>
+                        <h1 id="page-title">Mis Estados Programados</h1>
+                    </div>
+                </div>
 
                 <div class="topbar-actions" id="view-controls">
                     <button class="view-button active" data-view="grid">
@@ -437,7 +453,7 @@
                 <div class="panel line-connect-panel">
                     <h2 class="title-with-icon"><svg class="icon"><use href="#i-link"></use></svg><span>Conectar una nueva línea</span></h2>
 
-                    <div class="line-toolbar" style="grid-template-columns:minmax(220px,1fr) auto;">
+                    <div class="line-toolbar">
                         <input
                             type="text"
                             id="nombre-linea"
@@ -453,7 +469,26 @@
                     </div>
 
                     <p id="mensaje-linea"></p>
-                    <div class="pending-title title-with-icon"><svg class="icon"><use href="#i-loader"></use></svg><span>Líneas pendientes de vinculación</span></div>
+                    <div class="line-group-heading pending-group-heading">
+                        <div class="pending-title title-with-icon"><svg class="icon"><use href="#i-loader"></use></svg><span>Líneas pendientes de vinculación</span></div>
+                        <div class="line-group-selection" aria-label="Selección de líneas pendientes">
+                            <label class="check-all line-group-select-all">
+                                <input type="checkbox" id="seleccionar-todas-eliminar-pendientes">
+                                <span>Seleccionar pendientes</span>
+                            </label>
+                            <span id="cantidad-eliminar-pendientes" class="line-group-count">0</span>
+                            <button
+                                type="button"
+                                id="btn-eliminar-pendientes-seleccionadas"
+                                class="small-danger line-group-delete-button"
+                                title="Eliminar líneas pendientes seleccionadas"
+                                disabled
+                            >
+                                <svg class="icon"><use href="#i-trash"></use></svg>
+                                <span id="texto-eliminar-pendientes">Eliminar</span>
+                            </button>
+                        </div>
+                    </div>
                     <div id="lista-lineas-pendientes" class="lines-grid"></div>
                 </div>
 
@@ -463,10 +498,29 @@
                             <h2 class="title-with-icon"><svg class="icon"><use href="#i-check-circle"></use></svg><span>Líneas conectadas</span></h2>
                             <p>Acá se muestran únicamente las líneas que ya están listas para publicar.</p>
                         </div>
-                        <button type="button" id="btn-reconectar-todas" class="secondary-button">
-                            <svg class="icon"><use href="#i-refresh"></use></svg>
-                            <span>Reconectar pendientes</span>
-                        </button>
+                        <div class="line-heading-actions">
+                            <div class="line-group-selection" aria-label="Selección de líneas conectadas">
+                                <label class="check-all line-group-select-all">
+                                    <input type="checkbox" id="seleccionar-todas-eliminar-conectadas">
+                                    <span>Seleccionar conectadas</span>
+                                </label>
+                                <span id="cantidad-eliminar-conectadas" class="line-group-count">0</span>
+                                <button
+                                    type="button"
+                                    id="btn-eliminar-conectadas-seleccionadas"
+                                    class="small-danger line-group-delete-button"
+                                    title="Eliminar líneas conectadas seleccionadas"
+                                    disabled
+                                >
+                                    <svg class="icon"><use href="#i-trash"></use></svg>
+                                    <span id="texto-eliminar-conectadas">Eliminar</span>
+                                </button>
+                            </div>
+                            <button type="button" id="btn-reconectar-todas" class="secondary-button">
+                                <svg class="icon"><use href="#i-refresh"></use></svg>
+                                <span>Reconectar pendientes</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="line-management-toolbar">
@@ -1461,11 +1515,43 @@
         aria-label="Código QR para vincular la línea"
     >
         <div class="modal-card qr-line-modal-card" tabindex="-1">
-            <img
-                id="qr-linea-imagen"
-                class="qr-line-modal-image"
-                alt="Código QR para vincular la línea"
-            >
+            <aside class="qr-account-panel">
+                <div class="qr-account-heading">
+                    <span class="qr-account-eyebrow">Cuenta de Google</span>
+                    <h2 id="qr-linea-nombre">Vincular línea</h2>
+                    <p>Elegí dónde se guardarán los contactos de esta línea.</p>
+                </div>
+
+                <label class="qr-account-search">
+                    <svg class="icon"><use href="#i-search"></use></svg>
+                    <input
+                        type="search"
+                        id="qr-account-search"
+                        placeholder="Buscar cuenta..."
+                        autocomplete="off"
+                    >
+                </label>
+
+                <div id="qr-account-current" class="qr-account-current">
+                    Sin cuenta seleccionada
+                </div>
+                <div id="qr-account-list" class="qr-account-list" role="listbox"></div>
+                <p id="qr-account-message" class="qr-account-message" aria-live="polite"></p>
+
+                <button type="button" id="btn-qr-manage-google" class="qr-manage-google">
+                    <svg class="icon"><use href="#i-plus"></use></svg>
+                    <span>Agregar cuenta de Google</span>
+                </button>
+            </aside>
+
+            <div class="qr-code-panel">
+                <span class="qr-code-label">Escaneá para vincular</span>
+                <img
+                    id="qr-linea-imagen"
+                    class="qr-line-modal-image"
+                    alt="Código QR para vincular la línea"
+                >
+            </div>
         </div>
     </div>
 
@@ -1505,6 +1591,7 @@
 
     <script>
         const lineasSeleccionadas = new Set();
+        const lineasSeleccionadasEliminar = new Set();
         const programacionesCache = new Map();
 
         let idsLineasConectadas = [];
@@ -1528,6 +1615,7 @@
         let cargandoEstadosActivos = false;
         let proteccionMiddlewareActual = null;
         let publicacionActivaActual = false;
+        let eliminandoLineasSeleccionadas = false;
         let altoTotalSolicitado = false;
         let secuenciaActualizacionLineas = 0;
         let resolverConfirmacion = null;
@@ -1535,6 +1623,11 @@
         let lineaQrObjetivoId = null;
         let lineaQrModalId = null;
         let qrModalActual = null;
+        let qrCuentaId = null;
+        let qrCuentaAsignando = false;
+        let qrCuentasCargando = false;
+        let qrBusquedaCuenta = '';
+        let qrSolicitudCuentas = 0;
         let agendaLineaId = null;
         let agendaCuentaId = null;
         let agendaEstado = null;
@@ -1546,6 +1639,8 @@
         let agendaFirmaLineas = '';
         let agendaFirmaCuentas = '';
         let agendaOperacionIA = false;
+        let cuentasGoogleDisponibles = [];
+        let cuentasGoogleCargando = false;
         const agendaRevisionesIAEnCurso = new Set();
 
         const solicitudesIdempotentesEnCurso = new Set();
@@ -2011,6 +2106,175 @@
             return seccionActual === 'lineas' && !hayOtroModal;
         }
 
+        function normalizarBusquedaCuentaQr(valor = '') {
+            return String(valor || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLocaleLowerCase('es')
+                .trim();
+        }
+
+        function cuentasGoogleOrdenadasParaQr() {
+            return opcionesCuentasGoogle()
+                .filter(cuenta => idCuentaAgenda(cuenta))
+                .slice()
+                .sort((a, b) => nombreCuentaAgenda(a).localeCompare(
+                    nombreCuentaAgenda(b),
+                    'es',
+                    { sensitivity: 'base', numeric: true }
+                ));
+        }
+
+        function renderizarCuentasGoogleQr() {
+            const lista = document.getElementById('qr-account-list');
+            const actual = document.getElementById('qr-account-current');
+            const mensaje = document.getElementById('qr-account-message');
+            const botonGestionar = document.getElementById('btn-qr-manage-google');
+            if (!lista || !actual || !mensaje || !botonGestionar) return;
+
+            const cuentas = cuentasGoogleOrdenadasParaQr();
+            const consulta = normalizarBusquedaCuentaQr(qrBusquedaCuenta);
+            const visibles = consulta
+                ? cuentas.filter(cuenta => normalizarBusquedaCuentaQr(
+                    `${nombreCuentaAgenda(cuenta)} ${idCuentaAgenda(cuenta)}`
+                ).includes(consulta))
+                : cuentas;
+            const seleccionada = cuentas.find(
+                cuenta => idCuentaAgenda(cuenta) === String(qrCuentaId || '')
+            );
+
+            actual.classList.toggle('selected', Boolean(seleccionada));
+            actual.innerHTML = seleccionada
+                ? `${iconoSVG('check-circle')}<span><small>Cuenta seleccionada</small><strong>${escaparHTML(nombreCuentaAgenda(seleccionada))}</strong></span>`
+                : `${iconoSVG('info')}<span><small>Cuenta seleccionada</small><strong>Sin cuenta de Google</strong></span>`;
+
+            if (qrCuentasCargando) {
+                lista.innerHTML = `
+                    <div class="qr-account-empty loading">
+                        ${iconoSVG('loader', 'spin')}
+                        <span>Cargando cuentas...</span>
+                    </div>
+                `;
+            } else if (!cuentas.length) {
+                lista.innerHTML = `
+                    <div class="qr-account-empty">
+                        ${iconoSVG('users')}
+                        <strong>No hay cuentas conectadas</strong>
+                        <span>Agregá una desde Agendamiento.</span>
+                    </div>
+                `;
+            } else if (!visibles.length) {
+                lista.innerHTML = `
+                    <div class="qr-account-empty compact">
+                        ${iconoSVG('search')}
+                        <span>No encontramos esa cuenta.</span>
+                    </div>
+                `;
+            } else {
+                lista.innerHTML = visibles.map(cuenta => {
+                    const id = idCuentaAgenda(cuenta);
+                    const nombre = nombreCuentaAgenda(cuenta);
+                    const activa = id === String(qrCuentaId || '');
+                    const inicial = nombre.charAt(0).toLocaleUpperCase('es') || 'G';
+                    return `
+                        <button
+                            type="button"
+                            class="qr-account-option ${activa ? 'active' : ''}"
+                            data-qr-account-id="${escaparHTML(id)}"
+                            role="option"
+                            aria-selected="${String(activa)}"
+                            ${qrCuentaAsignando ? 'disabled' : ''}
+                        >
+                            <span class="qr-account-avatar">${escaparHTML(inicial)}</span>
+                            <span class="qr-account-option-copy">
+                                <strong>${escaparHTML(nombre)}</strong>
+                                <small>${activa ? 'Asignada a esta línea' : 'Usar para esta línea'}</small>
+                            </span>
+                            ${iconoSVG(activa ? 'check-circle' : 'chevron-down')}
+                        </button>
+                    `;
+                }).join('');
+            }
+
+            botonGestionar.querySelector('span').textContent = cuentas.length
+                ? 'Agregar otra cuenta'
+                : 'Agregar cuenta de Google';
+        }
+
+        async function cargarCuentasGoogleQr(lineaId, { forzar = false } = {}) {
+            const id = String(lineaId || '').trim();
+            if (!id || (qrCuentasCargando && !forzar)) return;
+
+            const solicitud = ++qrSolicitudCuentas;
+            qrCuentasCargando = true;
+            const mensaje = document.getElementById('qr-account-message');
+            if (mensaje) mensaje.textContent = '';
+            renderizarCuentasGoogleQr();
+
+            try {
+                const respuesta = await fetch(
+                    `/agendamiento?${new URLSearchParams({ lineaId: id })}`
+                );
+                const data = await exigirRespuesta(
+                    respuesta,
+                    'No se pudieron cargar las cuentas de Google.'
+                );
+                if (solicitud !== qrSolicitudCuentas || lineaQrModalId !== id) return;
+
+                cuentasGoogleDisponibles = Array.isArray(data.cuentas)
+                    ? data.cuentas
+                    : [];
+                qrCuentaId = data.cuentaId ? String(data.cuentaId) : null;
+            } catch (error) {
+                if (solicitud !== qrSolicitudCuentas || lineaQrModalId !== id) return;
+                cuentasGoogleDisponibles = [];
+                qrCuentaId = null;
+                if (mensaje) mensaje.textContent = error.message;
+            } finally {
+                if (solicitud === qrSolicitudCuentas && lineaQrModalId === id) {
+                    qrCuentasCargando = false;
+                    renderizarCuentasGoogleQr();
+                }
+            }
+        }
+
+        async function seleccionarCuentaGoogleQr(cuentaId) {
+            const lineaId = String(lineaQrModalId || '').trim();
+            const id = String(cuentaId || '').trim();
+            if (!lineaId || !id || qrCuentaAsignando || id === String(qrCuentaId || '')) return;
+
+            qrCuentaAsignando = true;
+            const mensaje = document.getElementById('qr-account-message');
+            if (mensaje) mensaje.textContent = 'Asignando cuenta...';
+            renderizarCuentasGoogleQr();
+
+            try {
+                const respuesta = await fetch(
+                    `/agendamiento/lineas/${encodeURIComponent(lineaId)}/cuenta`,
+                    {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ cuentaId: id })
+                    }
+                );
+                const data = await exigirRespuesta(
+                    respuesta,
+                    'No se pudo asignar la cuenta de Google.'
+                );
+                if (lineaQrModalId !== lineaId) return;
+                qrCuentaId = String(data.cuentaId || id);
+                if (mensaje) mensaje.textContent = 'Cuenta asignada correctamente.';
+                toast('Cuenta de Google asignada a la línea.', 'success');
+            } catch (error) {
+                if (lineaQrModalId === lineaId && mensaje) {
+                    mensaje.textContent = error.message;
+                }
+            } finally {
+                qrCuentaAsignando = false;
+                if (lineaQrModalId === lineaId) renderizarCuentasGoogleQr();
+            }
+        }
+
         function abrirQrDeLinea(linea, { forzar = false } = {}) {
             if (
                 !linea ||
@@ -2026,6 +2290,7 @@
             const modal = document.getElementById('modal-qr-linea');
             const tarjeta = modal.querySelector('.qr-line-modal-card');
             const imagen = document.getElementById('qr-linea-imagen');
+            const cambioLinea = lineaQrModalId !== id;
 
             lineaQrModalId = id;
             lineaQrObjetivoId = id;
@@ -2034,6 +2299,17 @@
                 imagen.src = qr;
             }
             imagen.alt = `Código QR para vincular ${linea.nombre || 'la línea'}`;
+            document.getElementById('qr-linea-nombre').textContent =
+                linea.nombre || 'Vincular línea';
+
+            if (cambioLinea) {
+                qrCuentaId = null;
+                qrBusquedaCuenta = '';
+                const buscador = document.getElementById('qr-account-search');
+                if (buscador) buscador.value = '';
+                renderizarCuentasGoogleQr();
+                void cargarCuentasGoogleQr(id, { forzar: true });
+            }
 
             if (!modal.classList.contains('open')) {
                 abrirModal('modal-qr-linea');
@@ -2054,6 +2330,11 @@
 
             lineaQrModalId = null;
             qrModalActual = null;
+            qrCuentaId = null;
+            qrCuentaAsignando = false;
+            qrCuentasCargando = false;
+            qrBusquedaCuenta = '';
+            qrSolicitudCuentas += 1;
             if (!conservarObjetivo) lineaQrObjetivoId = null;
 
             if (document.getElementById('modal-qr-linea').classList.contains('open')) {
@@ -2130,6 +2411,28 @@
             // Los QR antiguos no interrumpen otras tareas: se abren desde su card.
         }
 
+        document.getElementById('qr-account-search').addEventListener('input', evento => {
+            qrBusquedaCuenta = evento.currentTarget.value;
+            renderizarCuentasGoogleQr();
+        });
+
+        document.getElementById('qr-account-list').addEventListener('click', evento => {
+            const opcion = evento.target.closest('[data-qr-account-id]');
+            if (!opcion) return;
+            seleccionarCuentaGoogleQr(opcion.dataset.qrAccountId);
+        });
+
+        document.getElementById('btn-qr-manage-google').addEventListener('click', () => {
+            const lineaId = String(lineaQrModalId || '');
+            cerrarQrDeLinea({ manual: true });
+            agendaLineaId = lineaId || agendaLineaId;
+            agendaCuentaId = null;
+            agendaFirmaLineas = '';
+            agendaFirmaCuentas = '';
+            mostrarSeccion('agendamiento');
+            toast('Conectá una cuenta de Google y luego volvé a abrir el QR.', 'info');
+        });
+
         document.getElementById('modal-qr-linea').addEventListener('click', evento => {
             if (evento.target.id === 'modal-qr-linea') {
                 cerrarQrDeLinea({ manual: true });
@@ -2147,15 +2450,256 @@
                 return;
             }
 
-            if (evento.key === 'Tab') {
+            if (evento.key !== 'Tab') return;
+
+            const controles = Array.from(modalQr.querySelectorAll(
+                'input:not(:disabled), button:not(:disabled), [tabindex="0"]'
+            )).filter(control => control.offsetParent !== null);
+            if (!controles.length) {
                 evento.preventDefault();
                 modalQr.querySelector('.qr-line-modal-card').focus({ preventScroll: true });
+                return;
+            }
+
+            const primero = controles[0];
+            const ultimo = controles[controles.length - 1];
+            if (evento.shiftKey && document.activeElement === primero) {
+                evento.preventDefault();
+                ultimo.focus({ preventScroll: true });
+            } else if (!evento.shiftKey && document.activeElement === ultimo) {
+                evento.preventDefault();
+                primero.focus({ preventScroll: true });
+            } else if (!controles.includes(document.activeElement)) {
+                evento.preventDefault();
+                primero.focus({ preventScroll: true });
             }
         });
 
         function actualizarCantidadSeleccionadas() {
             document.getElementById('cantidad-lineas-seleccionadas').textContent =
                 `${lineasSeleccionadas.size} línea(s)`;
+        }
+
+        function lineasDisponiblesParaEliminar(grupo = null) {
+            const lineas = (Array.isArray(cacheLineasAgendamiento)
+                ? cacheLineasAgendamiento
+                : [])
+                .filter(linea => linea?.id)
+                .map(linea => ({
+                    ...linea,
+                    id: String(linea.id)
+                }));
+
+            if (grupo === 'conectadas') {
+                return lineas.filter(linea => linea.estado === 'conectado');
+            }
+            if (grupo === 'pendientes') {
+                return lineas.filter(linea => linea.estado !== 'conectado');
+            }
+            return lineas;
+        }
+
+        function actualizarControlesEliminacionLineas() {
+            const lineasDisponibles = lineasDisponiblesParaEliminar();
+            const idsDisponibles = new Set(
+                lineasDisponibles.map(linea => linea.id)
+            );
+
+            for (const id of Array.from(lineasSeleccionadasEliminar)) {
+                if (!idsDisponibles.has(id)) {
+                    lineasSeleccionadasEliminar.delete(id);
+                }
+            }
+
+            const grupos = [
+                {
+                    nombre: 'pendientes',
+                    selectorId: 'seleccionar-todas-eliminar-pendientes',
+                    botonId: 'btn-eliminar-pendientes-seleccionadas',
+                    contadorId: 'cantidad-eliminar-pendientes'
+                },
+                {
+                    nombre: 'conectadas',
+                    selectorId: 'seleccionar-todas-eliminar-conectadas',
+                    botonId: 'btn-eliminar-conectadas-seleccionadas',
+                    contadorId: 'cantidad-eliminar-conectadas'
+                }
+            ];
+
+            grupos.forEach(grupo => {
+                const disponiblesGrupo = lineasDisponiblesParaEliminar(
+                    grupo.nombre
+                );
+                const seleccionadas = disponiblesGrupo.filter(linea =>
+                    lineasSeleccionadasEliminar.has(linea.id)
+                ).length;
+                const selectorTodas = document.getElementById(
+                    grupo.selectorId
+                );
+                const botonEliminar = document.getElementById(grupo.botonId);
+                const contador = document.getElementById(grupo.contadorId);
+
+                if (selectorTodas) {
+                    selectorTodas.checked =
+                        disponiblesGrupo.length > 0 &&
+                        seleccionadas === disponiblesGrupo.length;
+                    selectorTodas.indeterminate =
+                        seleccionadas > 0 &&
+                        seleccionadas < disponiblesGrupo.length;
+                    selectorTodas.disabled =
+                        eliminandoLineasSeleccionadas ||
+                        disponiblesGrupo.length === 0;
+                }
+                if (contador) {
+                    contador.textContent = String(seleccionadas);
+                    contador.title = `${seleccionadas} seleccionada${seleccionadas === 1 ? '' : 's'}`;
+                    contador.setAttribute(
+                        'aria-label',
+                        `${seleccionadas} línea${seleccionadas === 1 ? '' : 's'} seleccionada${seleccionadas === 1 ? '' : 's'}`
+                    );
+                }
+                if (botonEliminar) {
+                    botonEliminar.disabled =
+                        eliminandoLineasSeleccionadas || seleccionadas === 0;
+                }
+            });
+
+            document.querySelectorAll('.line-delete-check').forEach(checkbox => {
+                const id = String(checkbox.dataset.id || checkbox.value || '');
+                checkbox.checked = lineasSeleccionadasEliminar.has(id);
+                checkbox.disabled = eliminandoLineasSeleccionadas;
+                checkbox.closest('.connected-line-card, .pending-line-card')
+                    ?.classList.toggle('selected-for-delete', checkbox.checked);
+            });
+        }
+
+        function manejarCambioSeleccionEliminarLinea(evento) {
+            const checkbox = evento.target.closest('.line-delete-check');
+            if (!checkbox) return;
+            const id = String(checkbox.dataset.id || checkbox.value || '');
+            if (!id) return;
+
+            if (checkbox.checked) lineasSeleccionadasEliminar.add(id);
+            else lineasSeleccionadasEliminar.delete(id);
+            actualizarControlesEliminacionLineas();
+        }
+
+        function limpiarLineaEliminadaEnInterfaz(idEntrada) {
+            const id = String(idEntrada || '');
+            if (!id) return;
+            if (lineaQrModalId === id) cerrarQrDeLinea();
+            if (lineaQrObjetivoId === id) lineaQrObjetivoId = null;
+            qrDescartadosPorLinea.delete(id);
+            lineasSeleccionadas.delete(id);
+            lineasSeleccionadasEliminar.delete(id);
+            if (selectorEtiquetaAbiertoId === id) selectorEtiquetaAbiertoId = null;
+            actualizarCheckboxGeneral();
+            actualizarControlesEliminacionLineas();
+        }
+
+        async function eliminarLineaRemota(idEntrada) {
+            const id = String(idEntrada || '');
+            const respuesta = await fetch(
+                `/lineas/${encodeURIComponent(id)}`,
+                { method: 'DELETE' }
+            );
+            const data = await leerRespuesta(respuesta);
+            if (!respuesta.ok) {
+                const error = new Error(
+                    data.error || 'No se pudo eliminar la línea.'
+                );
+                error.codigo = data.codigo || null;
+                throw error;
+            }
+            limpiarLineaEliminadaEnInterfaz(id);
+            return data;
+        }
+
+        async function eliminarSeleccionLineas(grupo) {
+            if (eliminandoLineasSeleccionadas) return;
+            if (grupo !== 'conectadas' && grupo !== 'pendientes') return;
+
+            const disponibles = lineasDisponiblesParaEliminar(grupo);
+            const porId = new Map(disponibles.map(linea => [linea.id, linea]));
+            const ids = Array.from(lineasSeleccionadasEliminar)
+                .filter(id => porId.has(id));
+            if (!ids.length) {
+                actualizarControlesEliminacionLineas();
+                return;
+            }
+
+            const sonConectadas = grupo === 'conectadas';
+            const descripcionGrupo = sonConectadas
+                ? `conectada${ids.length === 1 ? '' : 's'}`
+                : `pendiente${ids.length === 1 ? '' : 's'} o reconectando`;
+            const confirmado = await solicitarConfirmacion({
+                titulo: `Eliminar ${ids.length} línea${ids.length === 1 ? '' : 's'} ${descripcionGrupo}`,
+                mensaje: sonConectadas
+                    ? 'Se eliminarán las sesiones seleccionadas. Para volver a usarlas tendrás que vincularlas nuevamente.'
+                    : 'Se detendrá cualquier vinculación o reconexión en curso. Para volver a usarlas tendrás que vincularlas nuevamente.',
+                textoConfirmar: `Eliminar ${ids.length}`,
+                icono: 'trash'
+            });
+            if (!confirmado) return;
+
+            const prefijoId = sonConectadas ? 'conectadas' : 'pendientes';
+            const boton = document.getElementById(
+                `btn-eliminar-${prefijoId}-seleccionadas`
+            );
+            const textoBoton = document.getElementById(
+                `texto-eliminar-${prefijoId}`
+            );
+            const tituloBotonOriginal = boton?.title || '';
+            const fallidas = [];
+            let eliminadas = 0;
+            eliminandoLineasSeleccionadas = true;
+            actualizarControlesEliminacionLineas();
+            boton?.setAttribute('aria-busy', 'true');
+
+            try {
+                for (let indice = 0; indice < ids.length; indice += 1) {
+                    const id = ids[indice];
+                    if (textoBoton) {
+                        textoBoton.textContent = `${indice + 1} / ${ids.length}`;
+                    }
+                    if (boton) {
+                        boton.title = `Eliminando línea ${indice + 1} de ${ids.length}`;
+                    }
+                    try {
+                        await eliminarLineaRemota(id);
+                        eliminadas += 1;
+                    } catch (error) {
+                        fallidas.push({
+                            id,
+                            nombre: porId.get(id)?.nombre || 'Línea',
+                            mensaje: error.message
+                        });
+                    }
+                }
+
+                if (eliminadas > 0) {
+                    toast(
+                        `${eliminadas} línea${eliminadas === 1 ? '' : 's'} eliminada${eliminadas === 1 ? '' : 's'} correctamente.`,
+                        'success'
+                    );
+                }
+                if (fallidas.length > 0) {
+                    const primera = fallidas[0];
+                    toast(
+                        `${fallidas.length} no se pudieron eliminar. ${primera.nombre}: ${primera.mensaje}`,
+                        'error'
+                    );
+                }
+            } finally {
+                eliminandoLineasSeleccionadas = false;
+                if (textoBoton) textoBoton.textContent = 'Eliminar';
+                if (boton) {
+                    boton.removeAttribute('aria-busy');
+                    boton.title = tituloBotonOriginal;
+                }
+                actualizarControlesEliminacionLineas();
+                actualizarLineas();
+            }
         }
 
         function mostrarSeccion(nombre, opciones = {}) {
@@ -2201,6 +2745,9 @@
             if (nombre === 'agendamiento') actualizarAgendamiento(true);
             if (nombre === 'historial') actualizarHistorial();
             if (nombre === 'configuracion') cargarConfiguracion();
+            if (nombre === 'lineas') {
+                void cargarCuentasGoogleParaLinea(true);
+            }
 
             programarActualizacionAgendamiento();
         }
@@ -2475,6 +3022,10 @@
                 idsVisibles.add(id);
                 const tarjeta = existentes.get(id) || document.createElement('article');
                 tarjeta.className = 'pending-line-card';
+                tarjeta.classList.toggle(
+                    'selected-for-delete',
+                    lineasSeleccionadasEliminar.has(id)
+                );
                 tarjeta.dataset.lineId = id;
                 tarjeta.dataset.state = String(linea.estado || 'error');
 
@@ -2494,7 +3045,19 @@
                                 <span>Última conexión: ${escaparHTML(formatearFechaCompacta(linea.ultimaConexion))}</span>
                             </span>
                         </div>
-                        <span class="pending-line-order">#${Number(linea.ordenConexion) || 0}</span>
+                        <span class="line-card-header-tools">
+                            <input
+                                type="checkbox"
+                                class="line-check line-delete-check"
+                                data-id="${escaparHTML(id)}"
+                                value="${escaparHTML(id)}"
+                                aria-label="Seleccionar ${escaparHTML(linea.nombre)} para eliminar"
+                                title="Seleccionar para eliminar"
+                                ${lineasSeleccionadasEliminar.has(id) ? 'checked' : ''}
+                                ${eliminandoLineasSeleccionadas ? 'disabled' : ''}
+                            >
+                            <span class="pending-line-order">#${Number(linea.ordenConexion) || 0}</span>
+                        </span>
                     </header>
 
                     <div class="pending-line-status-row">
@@ -2686,19 +3249,7 @@
 
             try {
                 botonEliminar.disabled = true;
-                const respuesta = await fetch(
-                    `/lineas/${encodeURIComponent(id)}`,
-                    { method: 'DELETE' }
-                );
-                const data = await leerRespuesta(respuesta);
-                if (!respuesta.ok) {
-                    throw new Error(data.error || 'No se pudo eliminar la línea.');
-                }
-
-                if (lineaQrModalId === id) cerrarQrDeLinea();
-                if (lineaQrObjetivoId === id) lineaQrObjetivoId = null;
-                qrDescartadosPorLinea.delete(id);
-                lineasSeleccionadas.delete(id);
+                const data = await eliminarLineaRemota(id);
                 toast(data.mensaje || 'Línea eliminada.', 'success');
                 actualizarLineas();
             } catch (error) {
@@ -2872,6 +3423,10 @@
                 const tarjeta = tarjetasExistentes.get(idLinea) ||
                     document.createElement('article');
                 tarjeta.className = 'connected-line-card';
+                tarjeta.classList.toggle(
+                    'selected-for-delete',
+                    lineasSeleccionadasEliminar.has(idLinea)
+                );
                 tarjeta.dataset.lineId = idLinea;
                 const audienciaLista = Boolean(linea.audienciaEstadosLista);
                 const audienciaSeleccionada = Number(linea.destinatariosEstado) || 0;
@@ -2950,7 +3505,19 @@
                                 <span>${linea.numero ? escaparHTML(linea.numero) : 'Número no disponible'}</span>
                             </span>
                         </div>
-                        <span class="connected-line-rank">#${Number(linea.ordenOriginal) || 0}</span>
+                        <span class="line-card-header-tools">
+                            <input
+                                type="checkbox"
+                                class="line-check line-delete-check"
+                                data-id="${escaparHTML(idLinea)}"
+                                value="${escaparHTML(idLinea)}"
+                                aria-label="Seleccionar ${escaparHTML(linea.nombre)} para eliminar"
+                                title="Seleccionar para eliminar"
+                                ${lineasSeleccionadasEliminar.has(idLinea) ? 'checked' : ''}
+                                ${eliminandoLineasSeleccionadas ? 'disabled' : ''}
+                            >
+                            <span class="connected-line-rank">#${Number(linea.ordenOriginal) || 0}</span>
+                        </span>
                     </div>
 
                     <div class="connected-line-state-row">
@@ -3421,15 +3988,7 @@
 
             try {
                 botonEliminar.disabled = true;
-                const respuesta = await fetch(`/lineas/${encodeURIComponent(id)}`, {
-                    method: 'DELETE'
-                });
-                const data = await leerRespuesta(respuesta);
-                if (!respuesta.ok) {
-                    throw new Error(data.error || 'No se pudo eliminar la línea.');
-                }
-
-                lineasSeleccionadas.delete(id);
+                const data = await eliminarLineaRemota(id);
                 toast(data.mensaje || 'Línea eliminada.', 'success');
                 actualizarLineas();
             } catch (error) {
@@ -3523,6 +4082,74 @@
             return String(
                 cuenta.email ?? cuenta.correo ?? cuenta.nombre ?? cuenta.displayName ?? idCuentaAgenda(cuenta)
             ).trim() || 'Cuenta de Google';
+        }
+
+        function opcionesCuentasGoogle() {
+            return Array.isArray(cuentasGoogleDisponibles)
+                ? cuentasGoogleDisponibles
+                : [];
+        }
+
+        function cuentaGoogleExiste(id = '') {
+            const target = String(id || '').trim();
+            if (!target) return false;
+            return opcionesCuentasGoogle().some(
+                cuenta => idCuentaAgenda(cuenta) === target
+            );
+        }
+
+        function renderizarSelectorCuentaLinea() {
+            const selector = document.getElementById('cuenta-linea');
+            if (!selector) return;
+
+            const cuentas = opcionesCuentasGoogle();
+            const seleccionado = String(selector.value || '').trim();
+
+            selector.innerHTML = `
+                <option value="">Sin cuenta de Google</option>
+                ${cuentas.map(cuenta => {
+                    const id = idCuentaAgenda(cuenta);
+                    const nombre = nombreCuentaAgenda(cuenta);
+                    return `<option value="${escaparHTML(id)}">${escaparHTML(nombre)}</option>`;
+                }).join('')}
+                <option value="__gestionar_google__">+ ${cuentas.length ? 'Agregar otra cuenta' : 'Configurar cuenta de Google'}</option>
+            `;
+            if (cuentaGoogleExiste(seleccionado)) {
+                selector.value = seleccionado;
+            } else if (cuentas.length === 1) {
+                selector.value = idCuentaAgenda(cuentas[0]);
+            } else {
+                selector.value = '';
+            }
+            selector.disabled = false;
+            selector.removeAttribute('data-mensaje');
+        }
+
+        async function cargarCuentasGoogleParaLinea(force = false) {
+            if (cuentasGoogleCargando) return opcionesCuentasGoogle();
+            if (!force && cuentasGoogleDisponibles.length) {
+                return opcionesCuentasGoogle();
+            }
+
+            cuentasGoogleCargando = true;
+            try {
+                const respuesta = await fetch('/agendamiento');
+                const data = await leerRespuesta(respuesta);
+                if (respuesta.ok && data && typeof data === 'object') {
+                    cuentasGoogleDisponibles = Array.isArray(data.cuentas)
+                        ? data.cuentas
+                        : [];
+                    renderizarSelectorCuentaLinea();
+                    return cuentasGoogleDisponibles;
+                }
+                cuentasGoogleDisponibles = [];
+                return [];
+            } catch {
+                cuentasGoogleDisponibles = [];
+                return [];
+            } finally {
+                cuentasGoogleCargando = false;
+            }
         }
 
         function normalizarHistorialAgenda(historial = {}) {
@@ -4140,6 +4767,8 @@
 
             renderizarSelectorLineasAgendamiento();
             const cuentas = Array.isArray(agendaEstado.cuentas) ? agendaEstado.cuentas : [];
+            cuentasGoogleDisponibles = cuentas;
+            renderizarSelectorCuentaLinea();
             renderizarSelectorCuentasAgendamiento(cuentas);
 
             const credencialesConfiguradas = agendaEstado.credencialesConfiguradas === true;
@@ -4916,6 +5545,15 @@
                 cacheLineasAgendamiento = todasLasLineas;
                 renderizarSelectorLineasAgendamiento();
 
+                const idsLineasExistentes = new Set(
+                    todasLasLineas.map(linea => String(linea.id))
+                );
+                for (const id of Array.from(lineasSeleccionadasEliminar)) {
+                    if (!idsLineasExistentes.has(id)) {
+                        lineasSeleccionadasEliminar.delete(id);
+                    }
+                }
+
                 idsLineasConectadas = conectadas
                     .filter(lineaListaParaPublicar)
                     .map(linea => linea.id);
@@ -4988,6 +5626,7 @@
                 renderizarLineasConectadas(cacheLineasSeccion);
 
                 renderizarLineasPendientes(pendientes);
+                actualizarControlesEliminacionLineas();
 
                 document.getElementById('nav-line-count').textContent =
                     conectadas.length;
@@ -6091,10 +6730,50 @@
         document
             .getElementById('lista-lineas-conectadas')
             .addEventListener('click', manejarClickLineasConectadas);
+        document
+            .getElementById('lista-lineas-conectadas')
+            .addEventListener('change', manejarCambioSeleccionEliminarLinea);
 
         document
             .getElementById('lista-lineas-pendientes')
             .addEventListener('click', manejarClickLineasPendientes);
+        document
+            .getElementById('lista-lineas-pendientes')
+            .addEventListener('change', manejarCambioSeleccionEliminarLinea);
+
+        [
+            {
+                grupo: 'pendientes',
+                selectorId: 'seleccionar-todas-eliminar-pendientes',
+                botonId: 'btn-eliminar-pendientes-seleccionadas'
+            },
+            {
+                grupo: 'conectadas',
+                selectorId: 'seleccionar-todas-eliminar-conectadas',
+                botonId: 'btn-eliminar-conectadas-seleccionadas'
+            }
+        ].forEach(configuracion => {
+            document
+                .getElementById(configuracion.selectorId)
+                .addEventListener('change', function () {
+                    const ids = lineasDisponiblesParaEliminar(
+                        configuracion.grupo
+                    ).map(linea => linea.id);
+                    if (this.checked) {
+                        ids.forEach(id => lineasSeleccionadasEliminar.add(id));
+                    } else {
+                        ids.forEach(id => lineasSeleccionadasEliminar.delete(id));
+                    }
+                    actualizarControlesEliminacionLineas();
+                });
+
+            document
+                .getElementById(configuracion.botonId)
+                .addEventListener(
+                    'click',
+                    () => eliminarSeleccionLineas(configuracion.grupo)
+                );
+        });
 
         document.querySelectorAll('.view-button').forEach(boton => {
             boton.addEventListener('click', () => {
@@ -6238,6 +6917,77 @@
                 mensaje.style.color = 'var(--danger)';
             }
         };
+
+        document.getElementById('cuenta-linea')?.addEventListener('change', evento => {
+            const selector = evento.currentTarget;
+            if (selector.value !== '__gestionar_google__') return;
+
+            selector.value = '';
+            mostrarSeccion('agendamiento');
+            toast('Configurá o conectá una cuenta de Google y luego volvé a Líneas.', 'info');
+            requestAnimationFrame(() => {
+                const destino = agendaEstado?.credencialesConfiguradas === true
+                    ? document.getElementById('btn-agenda-connect-google')
+                    : document.getElementById('btn-agenda-credentials');
+                destino?.focus({ preventScroll: true });
+            });
+        });
+
+        const botonConectarLinea = document.getElementById('btn-conectar');
+        botonConectarLinea.onclick = null;
+        botonConectarLinea.addEventListener('click', async () => {
+            const input = document.getElementById('nombre-linea');
+            const selectorCuenta = document.getElementById('cuenta-linea');
+            const mensaje = document.getElementById('mensaje-linea');
+            const nombre = input.value.trim();
+            const cuentaId = selectorCuenta
+                ? String(selectorCuenta.value || '').trim()
+                : '';
+
+            if (!nombre) {
+                mensaje.textContent = 'EscribÃ­ un nombre para identificar la lÃ­nea.';
+                mensaje.style.color = 'var(--danger)';
+                return;
+            }
+
+            mensaje.textContent = 'Creando lÃ­nea...';
+            mensaje.style.color = 'var(--warning)';
+
+            try {
+                const respuesta = await fetch('/lineas', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nombre,
+                        ...(cuentaId ? { cuentaId } : {})
+                    })
+                });
+
+                const data = await respuesta.json();
+
+                if (!respuesta.ok) {
+                    throw new Error(data.error);
+                }
+
+                input.value = '';
+                if (selectorCuenta) selectorCuenta.value = '';
+                mensaje.textContent = '';
+                prepararAperturaQr(data.id);
+                toast(`LÃ­nea "${data.nombre}" creada. Preparando QR...`, 'success');
+                if (data.cuentaAsociacion && data.cuentaAsociacion.ok === false) {
+                    mensaje.textContent =
+                        `LÃ­nea creada. ${data.cuentaAsociacion.error || 'No se pudo asignar la cuenta de Google.'}`;
+                    mensaje.style.color = 'var(--warning)';
+                }
+                actualizarLineas();
+            } catch (error) {
+                mensaje.textContent =
+                    error.message || 'No se pudo crear la lÃ­nea.';
+                mensaje.style.color = 'var(--danger)';
+            }
+        });
 
         document.getElementById('buscar-lineas').addEventListener(
             'input',
@@ -6749,7 +7499,7 @@
             const botonDescargar = document.getElementById('btn-update-download');
             const botonInstalar = document.getElementById('btn-update-install');
 
-            const versionActual = estado.versionActual || '1.1.1';
+            const versionActual = estado.versionActual || '1.5.2';
             version.textContent = `v${versionActual}`;
             if (versionSidebar) versionSidebar.textContent = `ZeroOne ${versionActual}`;
             mensaje.textContent = estado.mensaje || 'Estado de actualización no disponible.';
